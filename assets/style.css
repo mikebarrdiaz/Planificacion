@@ -1,0 +1,159 @@
+/* assets/estilos.css */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap');
+
+:root {
+  /* Tipografía y Textos (Sistema SERVEO) */
+  --font-family: 'Outfit', sans-serif;
+  --color-title: #474751;
+  --color-header: #FF4E00;
+  --size-header: 9px;
+  --color-label: #474751;
+  --size-label: 9px;
+
+  /* Colores Base */
+  --bg-main: #FFFFFF;
+  --accent: #FF4E00;
+  --text-border: #474751;
+  --secondary: #CEC6C0;
+  --card-divider: #F0EEED;
+
+  /* Semántica Obligatoria SERVEO */
+  --semantic-positive: #4383F0;
+  --semantic-neutral: #BDEBDF;
+  --semantic-negative: #DB563A;
+
+  /* Escalas de Opacidad (30% para fondos contenedores) */
+  --semantic-positive-bg: rgba(67, 131, 240, 0.3);
+  --semantic-neutral-bg: rgba(189, 235, 223, 0.3);
+  --semantic-negative-bg: rgba(219, 86, 58, 0.3);
+
+  /* Escalas de Grises Guardadas */
+  --gray-e6: #E6E6E6;
+  --gray-b3: #B3B3B3;
+  --gray-66: #666666;
+
+  /* Componentes Estructurales */
+  --border-solid: 1px solid #474751;
+  --empty-state: #B3B3B3;
+  
+  /* UI Moderna: Bordes redondeados estrictos SERVEO */
+  --radius-interactive: 6px;
+  --radius-container: 12px;
+  --radius-pill: 999px;
+}
+
+/* --- RESETEO ESTRUCTURAL: Cero huecos en los extremos del navegador --- */
+html, body {
+  margin: 0 !important;
+  padding: 0 !important; /* Eliminamos el padding periférico que encogía el Navbar */
+  font-family: var(--font-family);
+  background-color: var(--bg-main);
+  color: var(--text-border);
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* --- CONTENEDOR DEL TRABAJO INTERNO --- */
+/* Para que las pestañas mantengan un aire limpio, aplicamos los márgenes múltiplos de 8px aquí, no en el body */
+.cuerpo-operativo {
+  padding: 32px; /* 32px es múltiplo estricto de 8px */
+  box-sizing: border-box;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-family);
+  margin-top: 0;
+}
+
+h1 {
+  color: var(--color-title);
+  font-weight: 700;
+  margin-bottom: 24px; /* Ajustado a escala de 8px */
+  font-size: 24px;
+}
+
+/* --- Barra de Filtros y Formularios Tarjeta --- */
+.contenedor-filtros {
+  display: flex;
+  gap: 16px; /* Ajustado a múltiplo de 8px */
+  padding: 24px; /* Ajustado a múltiplo de 8px */
+  margin-bottom: 24px;
+  border: var(--border-solid);
+  background-color: var(--bg-main);
+  border-radius: var(--radius-container); /* 12px obligatorio para tarjetas */
+}
+
+.grupo-filtro {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.etiqueta-dato {
+  color: var(--color-label);
+  font-size: var(--size-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 8px; /* Ajustado a escala de 8px */
+}
+
+.input-filtro {
+  font-family: var(--font-family);
+  color: var(--text-border);
+  border: var(--border-solid);
+  padding: 8px 12px;
+  outline: none;
+  background-color: var(--bg-main);
+  border-radius: var(--radius-interactive); /* 6px interactivos estricto */
+  box-sizing: border-box;
+}
+
+.input-filtro::placeholder {
+  color: var(--gray-b3);
+}
+
+.input-filtro:focus {
+  border-color: var(--accent);
+}
+
+/* --- Ajustes Dash Table Profesionales --- */
+.dash-spreadsheet-container .dash-spreadsheet-inner th {
+  font-size: var(--size-header) !important;
+  font-family: var(--font-family) !important;
+  color: var(--color-header) !important;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.dash-spreadsheet-container .dash-spreadsheet-inner td {
+  font-family: var(--font-family) !important;
+  font-size: 13px !important;
+  color: var(--text-border) !important;
+}
+
+/* --- Botones Estilo Píldora SERVEO --- */
+.btn-serveo-primario {
+  background-color: var(--accent);
+  color: #FFFFFF;
+  border: none;
+  padding: 8px 24px;
+  border-radius: var(--radius-pill); /* 999px píldoras */
+  font-family: var(--font-family);
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.btn-serveo-negativo {
+  background-color: var(--semantic-negative);
+  color: #FFFFFF;
+  border: none;
+  padding: 8px 24px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-family);
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 11px;
+  cursor: pointer;
+}
