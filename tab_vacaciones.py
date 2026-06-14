@@ -43,7 +43,6 @@ def generar_grafico_vacaciones(df_vacaciones, nombres_equipo):
     hoy_str = datetime.date.today().strftime('%Y-%m-%d')
     fig.add_vline(x=hoy_str, line_width=2, line_dash="dash", line_color="#FF4E00", annotation_text="Hoy", annotation_position="top", annotation_font_color="#FF4E00", annotation_font_family="Outfit")
     
-    # Mantenemos Hexadecimales en Plotly por compatibilidad interna de renderizado
     fig.update_layout(
         plot_bgcolor='#FFFFFF', paper_bgcolor='#FFFFFF',
         font=dict(family="Outfit", color="#474751"),
@@ -55,17 +54,14 @@ def generar_grafico_vacaciones(df_vacaciones, nombres_equipo):
     return fig
 
 def generar_opciones_borrado(df_vacaciones):
-    """Genera las opciones forzando el formato de fecha para asegurar un cruce exacto al borrar."""
     if df_vacaciones.empty:
         return []
         
     opciones = []
     df_temp = df_vacaciones.copy()
-    # Estandarizamos el string de la fecha desde el principio
     df_temp['fecha_limpia'] = pd.to_datetime(df_temp['Fecha_Inicio'], errors='coerce').dt.strftime('%Y-%m-%d')
     
     for _, row in df_temp.iterrows():
-        # Filtro de seguridad por si hay filas vacías perdidas en el Excel
         if pd.isna(row['Nombre']) or pd.isna(row['fecha_limpia']): 
             continue
             
@@ -75,6 +71,77 @@ def generar_opciones_borrado(df_vacaciones):
         
     return opciones
 
+# --- RENDERS DE TARJETAS AGRUPADAS POR PERSONA ---
+def generar_tarjetas_ausencias(df_vacaciones):
+    """Genera una única tarjeta consolidada por técnico con el desglose de todas sus ausencias."""
+    if df_vacaciones.empty:
+        return html.Div("No hay registros de ausencias activos en este momento.", 
+                        style={'color': 'var(--gray-b3)', 'fontFamily': 'var(--font-family)', 'fontStyle': 'italic', 'padding': '16px'})
+
+    tarjetas = []
+    df_temp = df_vacaciones.copy()
+    
+    # Estandarizamos fechas para poder ordenar cronológicamente
+    df_temp['Fecha_Inicio_dt'] = pd.to_datetime(df_temp['Fecha_Inicio'], errors='coerce')
+    df_temp = df_temp.sort_values(by='Fecha_Inicio_dt', ascending=True)
+
+    # Agrupamos por el nombre de la persona
+    for nombre, grupo in df_temp.groupby('Nombre'):
+        bloques_ausencias = []
+        
+        # Recorremos todas las ausencias que tiene esta persona concreta
+        for _, row in grupo.iterrows():
+            motivo = row.get('Tipo_Ausencia', 'Ausencia')
+            
+            # Estilos semánticos SERVEO para el mini-badge
+            if "VACACIONES" in str(motivo).upper():
+                color_badge = 'var(--semantic-positive)'
+                bg_badge = 'var(--semantic-positive-bg)'
+            elif "BAJA" in str(motivo).upper():
+                color_badge = 'var(--semantic-negative)'
+                bg_badge = 'var(--semantic-negative-bg)'
+            else:
+                color_badge = 'var(--color-title)'
+                bg_badge = 'var(--card-divider)'
+
+            f_inicio = pd.to_datetime(row.get('Fecha_Inicio')).strftime('%d/%m/%Y') if pd.notna(row.get('Fecha_Inicio')) else "N/A"
+            f_fin = pd.to_datetime(row.get('Fecha_Fin')).strftime('%d/%m/%Y') if pd.notna(row.get('Fecha_Fin')) else "N/A"
+
+            # Fila de la ausencia individualizada
+            bloque = html.Div([
+                html.Span(f"{f_inicio} al {f_fin}", style={'fontSize': '12px', 'fontWeight': '600', 'color': 'var(--text-border)'}),
+                html.Span(motivo, style={
+                    'color': color_badge, 'backgroundColor': bg_badge, 
+                    'padding': '2px 8px', 'borderRadius': 'var(--radius-pill)', 
+                    'fontSize': '9px', 'fontWeight': '700', 'textTransform': 'uppercase'
+                })
+            ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'padding': '6px 0'})
+            
+            bloques_ausencias.append(bloque)
+
+        # Envoltorio de la Tarjeta Unificada por Persona
+        tarjeta = html.Div([
+            # Cabecera de la Ficha
+            html.Div([
+                html.Span(nombre, style={'fontWeight': '700', 'fontSize': '15px', 'color': 'var(--color-title)'}),
+                html.Span(f"{len(bloques_ausencias)} Registro(s)", style={'fontSize': '10px', 'color': 'var(--gray-66)', 'textTransform': 'uppercase', 'fontWeight': 'bold'})
+            ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'marginBottom': '12px', 'borderBottom': '1px solid var(--text-border)', 'paddingBottom': '8px'}),
+            
+            # Lista interior de ausencias acumuladas
+            html.Div(bloques_ausencias, style={'display': 'flex', 'flexDirection': 'column', 'gap': '4px'})
+            
+        ], className="card-serveo", style={'marginBottom': '0', 'boxShadow': '0 4px 12px rgba(71, 71, 81, 0.03)', 'padding': '20px'})
+        
+        tarjetas.append(tarjeta)
+
+    # Distribución en Grid fluida
+    return html.Div(tarjetas, style={
+        'display': 'grid', 
+        'gridTemplateColumns': 'repeat(auto-fill, minmax(310px, 1fr))', 
+        'gap': '24px', 
+        'marginBottom': '32px'
+    })
+
 def layout():
     _, df_eq, df_vacaciones = leer_excel()
     nombres_equipo = df_eq['Nombre'].dropna().tolist() if not df_eq.empty else []
@@ -82,20 +149,11 @@ def layout():
     opciones_tecnicos = [{'label': nombre, 'value': nombre} for nombre in nombres_equipo]
     tipos_ausencia = [{'label': 'Vacaciones', 'value': 'Vacaciones'}, {'label': 'Baja Médica', 'value': 'Baja Médica'}, {'label': 'Permiso Personal', 'value': 'Permiso Personal'}]
 
-    if not df_vacaciones.empty:
-        df_vac_tabla = df_vacaciones.copy()
-        df_vac_tabla['Fecha_Inicio'] = pd.to_datetime(df_vac_tabla['Fecha_Inicio'], errors='coerce').dt.strftime('%Y-%m-%d')
-        df_vac_tabla['Fecha_Fin'] = pd.to_datetime(df_vac_tabla['Fecha_Fin'], errors='coerce').dt.strftime('%Y-%m-%d')
-        df_vac_tabla = df_vac_tabla.fillna("")
-        datos_diccionario = df_vac_tabla.to_dict('records')
-    else:
-        datos_diccionario = []
-
     figura_inicial = generar_grafico_vacaciones(df_vacaciones, nombres_equipo)
     opciones_borrar_inicial = generar_opciones_borrado(df_vacaciones)
+    tarjetas_iniciales = generar_tarjetas_ausencias(df_vacaciones)
 
     return html.Div([
-        # Título consolidado con clase
         html.H3("Panel de Gestión de Ausencias", className="serveo-titulo-pagina"),
         
         # --- PANEL DE CONTROL DUAL ---
@@ -105,7 +163,6 @@ def layout():
             html.Div([
                 html.Div("Añadir Nuevo Registro", style={'color': '#FFFFFF', 'backgroundColor': 'var(--text-border)', 'padding': '8px 16px', 'fontSize': '9px', 'fontWeight': 'bold', 'textTransform': 'uppercase', 'marginBottom': '24px', 'borderRadius': '6px', 'display': 'inline-block'}),
                 
-                # Fila de Inputs
                 html.Div([
                     html.Div([
                         html.Label("Técnico", className="etiqueta-dato"),
@@ -149,29 +206,9 @@ def layout():
         # Chivato de notificaciones
         html.Div(id='msj-accion-vac', style={'marginBottom': '24px', 'fontWeight': 'bold', 'fontFamily': 'var(--font-family)', 'fontSize': '13px'}),
         
-        # --- TABLA REGISTROS ---
-        html.H3("Registros Activos", className="serveo-titulo-seccion"),
-        dash_table.DataTable(
-            id='tabla-vac-readonly',
-            columns=[
-                {"name": "Técnico", "id": "Nombre"},
-                {"name": "Inicio", "id": "Fecha_Inicio"},
-                {"name": "Fin", "id": "Fecha_Fin"},
-                {"name": "Motivo", "id": "Tipo_Ausencia"}
-            ],
-            data=datos_diccionario,
-            style_header={
-                'backgroundColor': 'var(--card-divider)', 'color': 'var(--text-border)', 'fontWeight': 'bold', 
-                'border': 'var(--border-solid)', 'fontFamily': 'var(--font-family)', 
-                'fontSize': '9px', 'textTransform': 'uppercase', 'textAlign': 'left'
-            },
-            style_cell={
-                'backgroundColor': 'var(--bg-main)', 'color': 'var(--text-border)', 'border': '1px solid var(--card-divider)', 
-                'padding': '12px 16px', 'textAlign': 'left', 'fontFamily': 'var(--font-family)', 
-                'fontSize': '13px'
-            },
-            style_table={'marginBottom': '32px', 'overflowX': 'auto', 'borderRadius': 'var(--radius-interactive)', 'border': 'var(--border-solid)'}
-        ),
+        # --- SECCIÓN DE TARJETAS INTEGRADAS POR PERSONA ---
+        html.H3("Fichas de Disponibilidad de la Plantilla", className="serveo-titulo-seccion"),
+        html.Div(id='contenedor-tarjetas-vacaciones', children=tarjetas_iniciales),
         
         # --- GRÁFICO GANTT ---
         dcc.Graph(
@@ -189,12 +226,11 @@ def layout():
 
 def register_callbacks(app):
     @app.callback(
-        [Output('tabla-vac-readonly', 'data'),
+        [Output('contenedor-tarjetas-vacaciones', 'children'),
          Output('grafico-vac', 'figure'),
          Output('drop-del-vac', 'options'),
          Output('msj-accion-vac', 'children'),
          Output('msj-accion-vac', 'style'),
-         # Limpiamos los inputs tras usarlos para que la UI quede fresca
          Output('in-vac-tec', 'value'),
          Output('in-vac-fecha', 'start_date'),
          Output('in-vac-fecha', 'end_date'),
@@ -219,7 +255,6 @@ def register_callbacks(app):
         estilo_msg = {'marginBottom': '20px', 'fontWeight': 'bold', 'fontFamily': 'var(--font-family)', 'fontSize': '13px'}
         mensaje = ""
 
-        # Retornos de limpieza por defecto
         clear_tec, clear_start, clear_end, clear_tipo, clear_del = dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
         # --- AÑADIR ---
@@ -260,11 +295,7 @@ def register_callbacks(app):
                 return dash.no_update, dash.no_update, dash.no_update, "⚠️ Selecciona un registro del desplegable para eliminar.", estilo_msg, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
             
             tec_a_borrar, fecha_a_borrar = valor_borrar.split('|')
-            
-            # Normalizamos la fecha temporalmente para que el cruce sea 100% exacto
             df_vac['fecha_str'] = pd.to_datetime(df_vac['Fecha_Inicio'], errors='coerce').dt.strftime('%Y-%m-%d')
-            
-            # Aplicamos la eliminación
             df_vac = df_vac[~((df_vac['Nombre'] == tec_a_borrar) & (df_vac['fecha_str'] == fecha_a_borrar))]
             df_vac = df_vac.drop(columns=['fecha_str'])
             
@@ -278,17 +309,9 @@ def register_callbacks(app):
                 estilo_msg['color'] = 'var(--semantic-negative)'
                 mensaje = msj_sync
 
-        # --- PREPARACIÓN VISUAL TRAS LOS CAMBIOS ---
-        if not df_vac.empty:
-            df_vac_str = df_vac.copy()
-            df_vac_str['Fecha_Inicio'] = pd.to_datetime(df_vac_str['Fecha_Inicio'], errors='coerce').dt.strftime('%Y-%m-%d')
-            df_vac_str['Fecha_Fin'] = pd.to_datetime(df_vac_str['Fecha_Fin'], errors='coerce').dt.strftime('%Y-%m-%d')
-            df_vac_str = df_vac_str.fillna("")
-            datos_tabla = df_vac_str.to_dict('records')
-        else:
-            datos_tabla = []
-            
+        # --- RE-RENDERIZADO AUTOMÁTICO ---
+        html_tarjetas_actualizadas = generar_tarjetas_ausencias(df_vac)
         figura_actualizada = generar_grafico_vacaciones(df_vac, nombres)
         nuevas_opciones_borrado = generar_opciones_borrado(df_vac)
 
-        return datos_tabla, figura_actualizada, nuevas_opciones_borrado, mensaje, estilo_msg, clear_tec, clear_start, clear_end, clear_tipo, clear_del
+        return html_tarjetas_actualizadas, figura_actualizada, nuevas_opciones_borrado, mensaje, estilo_msg, clear_tec, clear_start, clear_end, clear_tipo, clear_del

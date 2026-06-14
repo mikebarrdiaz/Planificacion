@@ -1,4 +1,5 @@
-from dash import html, dcc, dash_table, Input, Output
+from dash import html, dcc, dash_table, Input, Output, State
+import dash
 import pandas as pd
 import datetime
 from utils.data_manager import leer_excel
@@ -99,12 +100,17 @@ def generar_matriz_et():
 
 def layout():
     df_matriz, cols_dias, columnas_fin_semana = generar_matriz_et()
+    _, df_eq, _ = leer_excel()
     
     if df_matriz.empty:
         return html.Div("No hay técnicos en el directorio operativo.", style={'padding': '20px', 'color': 'var(--semantic-negative)', 'fontFamily': 'var(--font-family)', 'fontWeight': 'bold'})
 
-    # Extraemos la lista de técnicos únicos para poblar el dropdown
+    # Generación de Opciones para Filtros Duales
     lista_tecnicos = df_matriz['Técnico'].unique().tolist()
+    opciones_roles = []
+    if not df_eq.empty and 'Perfil Técnico' in df_eq.columns:
+        roles_unicos = df_eq['Perfil Técnico'].dropna().unique()
+        opciones_roles = [{'label': r, 'value': r} for r in roles_unicos]
 
     # --- CREACIÓN DE MULTI-CABECERAS (Semanas del año) ---
     hoy_base = datetime.date.today()
@@ -153,18 +159,30 @@ def layout():
         # --- BARRA DE FILTROS SUPERIOR Y LEYENDA ---
         html.Div([
             
-            # Filtro de Técnico
+            # Bloque de Filtros Flexibles
             html.Div([
-                html.Label("Filtrar por Técnico:", className="etiqueta-dato"),
-                dcc.Dropdown(
-                    id='filtro-tecnico-et',
-                    options=[{'label': t, 'value': t} for t in lista_tecnicos],
-                    placeholder="Todos los técnicos",
-                    clearable=True,
-                    multi=True,
-                    className="input-filtro"
-                )
-            ], className="grupo-filtro", style={'flex': 'none', 'width': '400px', 'marginRight': '32px'}),
+                html.Div([
+                    html.Label("Filtrar por Rol:", className="etiqueta-dato"),
+                    dcc.Dropdown(
+                        id='filtro-rol-et',
+                        options=opciones_roles,
+                        placeholder="Todos los roles...",
+                        clearable=True,
+                        multi=True
+                    )
+                ], className="serveo-input-wrapper", style={'flex': 'none', 'width': '300px', 'marginRight': '8px'}),
+                
+                html.Div([
+                    html.Label("Filtrar por Técnico:", className="etiqueta-dato"),
+                    dcc.Dropdown(
+                        id='filtro-tecnico-et',
+                        options=[{'label': t, 'value': t} for t in lista_tecnicos],
+                        placeholder="Todos los técnicos",
+                        clearable=True,
+                        multi=True
+                    )
+                ], className="serveo-input-wrapper", style={'flex': 'none', 'width': '400px'})
+            ], style={'display': 'flex', 'alignItems': 'flex-end'}),
 
             # Leyenda
             html.Div([
@@ -176,7 +194,7 @@ def layout():
                 html.Span("Fin de Semana", style={'backgroundColor': 'var(--card-divider)', 'color': 'var(--text-border)', 'padding': '4px 8px', 'borderRadius': '4px', 'border': 'var(--border-solid)'})
             ], style={'fontSize': '10px', 'fontFamily': 'var(--font-family)', 'display': 'flex', 'alignItems': 'center', 'flexWrap': 'wrap'})
             
-        ], className="contenedor-filtros", style={'backgroundColor': 'var(--card-divider)', 'alignItems': 'center', 'justifyContent': 'space-between'}),
+        ], className="contenedor-filtros", style={'backgroundColor': 'var(--card-divider)', 'alignItems': 'center', 'justifyContent': 'space-between', 'flexWrap': 'wrap'}),
 
         # --- TABLA MATRIZ ---
         dash_table.DataTable(
@@ -213,19 +231,65 @@ def layout():
     ], style={'paddingBottom': '40px'})
 
 def register_callbacks(app):
+
+    # =====================================================================
+    # CALLBACK 1: FILTROS EN CASCADA (Lógica de Interfaz)
+    # =====================================================================
+    @app.callback(
+        [Output('filtro-tecnico-et', 'options'),
+         Output('filtro-tecnico-et', 'value')],
+        Input('filtro-rol-et', 'value'),
+        State('filtro-tecnico-et', 'value')
+    )
+    def encadenar_filtros_et(roles_seleccionados, tecnicos_actuales):
+        _, df_eq, _ = leer_excel()
+        if df_eq.empty: return [], dash.no_update
+            
+        df_filtrado = df_eq.copy()
+        if roles_seleccionados:
+            if isinstance(roles_seleccionados, str): roles_seleccionados = [roles_seleccionados]
+            if 'Perfil Técnico' in df_filtrado.columns:
+                df_filtrado = df_filtrado[df_filtrado['Perfil Técnico'].isin(roles_seleccionados)]
+
+        nuevas_opciones = [{'label': row['Nombre'], 'value': row['Nombre']} for _, row in df_filtrado.iterrows() if pd.notna(row.get('Nombre'))]
+        nombres_validos = [opc['value'] for opc in nuevas_opciones]
+        
+        nuevos_valores_tecnicos = tecnicos_actuales
+        if tecnicos_actuales:
+            if isinstance(tecnicos_actuales, str): tecnicos_actuales = [tecnicos_actuales]
+            nuevos_valores_tecnicos = [t for t in tecnicos_actuales if t in nombres_validos]
+            if not nuevos_valores_tecnicos: nuevos_valores_tecnicos = None
+                
+        return nuevas_opciones, nuevos_valores_tecnicos
+
+    # =====================================================================
+    # CALLBACK 2: FILTRADO DE LA MATRIZ
+    # =====================================================================
     @app.callback(
         Output('tabla-matriz-et', 'data'),
-        Input('filtro-tecnico-et', 'value')
+        [Input('filtro-tecnico-et', 'value'),
+         Input('filtro-rol-et', 'value')]
     )
-    def filtrar_matriz(tecnicos_seleccionados):
+    def filtrar_matriz(tecnicos_seleccionados, roles_seleccionados):
+        # 1. Blindaje de variables
+        if tecnicos_seleccionados and isinstance(tecnicos_seleccionados, str):
+            tecnicos_seleccionados = [tecnicos_seleccionados]
+        if roles_seleccionados and isinstance(roles_seleccionados, str):
+            roles_seleccionados = [roles_seleccionados]
+
         # Generamos la matriz base
         df_matriz, _, _ = generar_matriz_et()
+        _, df_eq, _ = leer_excel()
         
+        target_tecnicos = None
+        
+        # 2. Lógica Matricial
         if tecnicos_seleccionados:
-            # Por seguridad, si llega un string en lugar de lista, lo convertimos
-            if isinstance(tecnicos_seleccionados, str):
-                tecnicos_seleccionados = [tecnicos_seleccionados]
-                
-            df_matriz = df_matriz[df_matriz['Técnico'].isin(tecnicos_seleccionados)]
+            target_tecnicos = tecnicos_seleccionados
+        elif roles_seleccionados and not df_eq.empty and 'Perfil Técnico' in df_eq.columns:
+            target_tecnicos = df_eq[df_eq['Perfil Técnico'].isin(roles_seleccionados)]['Nombre'].dropna().tolist()
+
+        if target_tecnicos is not None:
+            df_matriz = df_matriz[df_matriz['Técnico'].isin(target_tecnicos)]
             
         return df_matriz.to_dict('records')

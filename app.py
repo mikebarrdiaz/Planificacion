@@ -61,7 +61,7 @@ app.layout = html.Div([
                 dcc.Tab(label='Cronograma', value='tab-cronograma', style=ESTILO_PESTANA_MODERNA, selected_style=ESTILO_PESTANA_ACTIVA),
                 dcc.Tab(label='Carga de Trabajo', value='tab-carga', style=ESTILO_PESTANA_MODERNA, selected_style=ESTILO_PESTANA_ACTIVA),
                 dcc.Tab(label='Activación licitaciones', value='tab-asignaciones', style=ESTILO_PESTANA_MODERNA, selected_style=ESTILO_PESTANA_ACTIVA),
-                dcc.Tab(label='Vacaciones', value='tab-vacaciones', style=ESTILO_PESTANA_MODERNA, selected_style=ESTILO_PESTANA_ACTIVA),
+                dcc.Tab(label='Asusencias', value='tab-vacaciones', style=ESTILO_PESTANA_MODERNA, selected_style=ESTILO_PESTANA_ACTIVA),
                 dcc.Tab(label='Equipo', value='tab-equipo', style=ESTILO_PESTANA_MODERNA, selected_style=ESTILO_PESTANA_ACTIVA),
                 
             ]
