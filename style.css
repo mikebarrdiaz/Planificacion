@@ -1,0 +1,283 @@
+/* =========================================================
+   SISTEMA DE DISEÑO SERVEO - CONSOLA BIDDING
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap');
+
+:root {
+  /* Tipografía y Textos */
+  --font-family: 'Outfit', sans-serif;
+  --color-title: #474751;
+  --color-header: #FF4E00;
+  --color-label: #474751;
+  --size-header: 9px;
+  --size-label: 9px;
+
+  /* Colores Base */
+  --bg-main: #FFFFFF;
+  --accent: #FF4E00;
+  --text-border: #474751;
+  --secondary: #CEC6C0;
+  --card-divider: #F0EEED;
+
+  /* Semántica Obligatoria */
+  --semantic-positive: #4383F0;
+  --semantic-neutral: #BDEBDF;
+  --semantic-negative: #DB563A;
+
+  /* Escalas de Opacidad (30%) */
+  --semantic-positive-bg: rgba(67, 131, 240, 0.3);
+  --semantic-neutral-bg: rgba(189, 235, 223, 0.3);
+  --semantic-negative-bg: rgba(219, 86, 58, 0.3);
+
+  /* Escalas de Grises */
+  --gray-e6: #E6E6E6;
+  --gray-b3: #B3B3B3;
+  --gray-66: #666666;
+
+  /* Geometría y Estructura */
+  --border-solid: 1px solid #474751;
+  --radius-interactive: 6px;
+  --radius-container: 12px;
+  --radius-pill: 999px;
+}
+
+/* =========================================================
+   1. RESETEO Y CONTENEDORES PRINCIPALES
+   ========================================================= */
+
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: var(--font-family);
+  background-color: var(--bg-main);
+  color: var(--text-border);
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.cuerpo-operativo {
+  padding: 32px;
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   2. TIPOGRAFÍA Y TÍTULOS
+   ========================================================= */
+
+h1, h2, h3 {
+  font-family: var(--font-family);
+  margin-top: 0;
+}
+
+h1 {
+  color: var(--color-title);
+  font-weight: 700;
+  margin-bottom: 24px;
+  font-size: 24px;
+}
+
+.serveo-titulo-pagina {
+  color: var(--accent);
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 24px;
+  letter-spacing: 0.5px;
+}
+
+.serveo-titulo-seccion {
+  color: var(--text-border);
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+/* =========================================================
+   3. PANELES DE CONTROL (LAYOUTS)
+   ========================================================= */
+
+.contenedor-filtros, 
+.serveo-panel-controles {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 24px;
+  background-color: var(--card-divider);
+  border: var(--border-solid);
+  border-radius: var(--radius-container);
+  margin-bottom: 32px;
+}
+
+.serveo-panel-accion,
+.card-serveo {
+  background-color: var(--bg-main);
+  padding: 24px;
+  border: var(--border-solid);
+  border-radius: var(--radius-container);
+  margin-bottom: 32px;
+  box-shadow: 0 4px 12px rgba(71, 71, 81, 0.05);
+}
+
+/* =========================================================
+   4. FORMULARIOS E INPUTS
+   ========================================================= */
+
+.grupo-filtro,
+.serveo-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.etiqueta-dato {
+  color: var(--color-label);
+  font-size: var(--size-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 0; /* El margen ahora lo gestiona el 'gap' del contenedor */
+}
+
+/* Control estricto SOLO para Cajas de Texto Nativas (el '>' evita que afecte a Dropdowns) */
+input.input-filtro,
+.serveo-input-wrapper > input {
+  background-color: var(--bg-main) !important;
+  border: var(--border-solid) !important;
+  border-radius: var(--radius-interactive) !important;
+  color: var(--text-border) !important;
+  font-family: var(--font-family) !important;
+  font-size: 12px !important;
+  height: 32px !important; 
+  padding: 0 12px !important;
+  box-sizing: border-box !important;
+  
+  /* Eliminación de bordes dobles nativos */
+  outline: none !important;
+  box-shadow: none !important;
+  appearance: none !important; 
+  -webkit-appearance: none !important;
+}
+
+input.input-filtro::placeholder,
+.serveo-input-wrapper > input::placeholder {
+  color: var(--gray-b3);
+}
+
+/* Efecto Focus (Resaltado naranja limpio) */
+input.input-filtro:focus,
+.serveo-input-wrapper > input:focus,
+.serveo-input-wrapper .is-focused > .Select-control {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 1px var(--accent) !important; /* Añade un halo sutil sin romper la geometría */
+}
+
+/* Control exclusivo para los Dropdowns de Dash (React Select) */
+.serveo-input-wrapper .Select-control,
+.serveo-input-wrapper .Select-placeholder,
+.serveo-input-wrapper .Select-value {
+  background-color: transparent !important;
+  color: var(--text-border) !important;
+  font-family: var(--font-family) !important;
+  font-size: 12px !important;
+}
+
+.serveo-input-wrapper .Select-control {
+  border: var(--border-solid) !important;
+  border-radius: var(--radius-interactive) !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  background-color: var(--bg-main) !important;
+  box-shadow: none !important;
+}
+
+/* FIX DEFINITIVO: Quitar cualquier rastro de borde al input invisible dentro del Dropdown */
+.serveo-input-wrapper .Select-control input {
+  border: none !important;
+  box-shadow: none !important;
+  height: auto !important;
+  outline: none !important;
+}
+
+/* =========================================================
+   5. BOTONES (ESTILO PÍLDORA)
+   ========================================================= */
+
+.btn-serveo-primario,
+.btn-serveo-negativo {
+  border: none;
+  padding: 8px 24px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-family);
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 11px;
+  cursor: pointer;
+  color: #FFFFFF;
+}
+
+.btn-serveo-primario {
+  background-color: var(--accent);
+}
+
+.btn-serveo-negativo {
+  background-color: var(--semantic-negative);
+}
+
+/* =========================================================
+   6. TABLAS (DASH DATATABLE)
+   ========================================================= */
+
+.dash-spreadsheet {
+  border: none !important;
+}
+
+.dash-header {
+  background-color: var(--bg-main) !important;
+  border-bottom: 2px solid var(--card-divider) !important;
+}
+
+.dash-spreadsheet-container .dash-spreadsheet-inner th {
+  background-color: var(--bg-main) !important;
+  border-color: var(--text-border) !important;
+  border-bottom: 1px solid var(--text-border) !important;
+  font-size: var(--size-header) !important;
+  font-family: var(--font-family) !important;
+  color: var(--color-header) !important;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.dash-spreadsheet-container .dash-spreadsheet-inner td {
+  font-family: var(--font-family) !important;
+  font-size: 13px !important;
+  color: var(--text-border) !important;
+}
+
+/* =========================================================
+   7. NAVBAR Y PESTAÑAS
+   ========================================================= */
+
+.navbar-serveo {
+  background-color: var(--bg-main) !important;
+  border-bottom: 1px solid var(--card-divider);
+  height: 72px !important;
+  display: flex;
+  align-items: center;
+  padding: 0 40px !important;
+  box-shadow: none !important;
+}
+
+.dcc-tab {
+  font-size: 11px !important;
+  letter-spacing: 0.5px !important;
+  color: var(--gray-b3) !important;
+}
+
+.dcc-tab--selected {
+  color: var(--accent) !important;
+  border-bottom: 2px solid var(--accent) !important;
+}
