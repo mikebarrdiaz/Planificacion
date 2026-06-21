@@ -4,6 +4,39 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 from utils.data_manager import obtener_datos_eficiente, procesar_cronograma
+from utils.icons import icono
+
+# --- ESTILO DE TARJETA BASE (estilo Salesforce / Lightning, look Serveo) ---
+ESTILO_TARJETA = {
+    'backgroundColor': '#FFFFFF',
+    'border': '1px solid #e5e5e5',
+    'borderRadius': 'var(--radius-container)',
+    'boxShadow': '0 1px 2px rgba(71, 71, 81, 0.05)',
+    'overflow': 'hidden'
+}
+
+ESTILO_BADGE_SECCION = {
+    'estudio': {'color': '#9a3412', 'backgroundColor': '#ffe1d0'},
+    'previo': {'color': '#4b327f', 'backgroundColor': '#ece4fb'},
+}
+
+
+def header_seccion(nombre_icono, etiqueta, titulo, tono='estudio'):
+    estilo_badge = ESTILO_BADGE_SECCION.get(tono, ESTILO_BADGE_SECCION['estudio'])
+    return html.Div([
+        html.Div([
+            html.Img(src=icono(nombre_icono, color=estilo_badge['color']), style={
+                'width': '36px', 'height': '36px', 'borderRadius': '8px',
+                'backgroundColor': estilo_badge['backgroundColor'],
+                'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center',
+                'padding': '8px', 'boxSizing': 'border-box', 'flex': 'none'
+            }),
+            html.Div([
+                html.Div(etiqueta, style={'fontSize': '11px', 'color': 'var(--gray-66)', 'fontWeight': '700', 'textTransform': 'uppercase', 'letterSpacing': '0.03em'}),
+                html.Div(titulo, style={'fontSize': '16px', 'fontWeight': '700', 'color': 'var(--text-border)', 'lineHeight': '1.2'})
+            ])
+        ], style={'display': 'flex', 'alignItems': 'center', 'gap': '12px'})
+    ], style={'marginBottom': '14px', 'marginTop': '28px'})
 
 # Orden estricto de colores SERVEO expandido (16 colores armonizados)
 PALETA_GRAFICOS = [
@@ -64,7 +97,23 @@ def layout():
             ]
 
     return html.Div([
-        html.H3("Análisis de Carga de Trabajo (FTE)", className="serveo-titulo-pagina"),
+
+        # --- HEADER DE PÁGINA (estilo Salesforce / Claude design) ---
+        html.Div([
+            html.Div([
+                html.Img(src=icono('grafico'), style={
+                    'width': '42px', 'height': '42px', 'borderRadius': '8px', 'background': 'var(--accent)',
+                    'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'padding': '11px',
+                    'boxSizing': 'border-box', 'flex': 'none'
+                }),
+                html.Div([
+                    html.Div("Análisis de carga", style={'fontSize': '12px', 'color': 'var(--gray-66)', 'fontWeight': '600'}),
+                    html.Div("Carga de trabajo (FTE)", style={'fontSize': '20px', 'fontWeight': '700', 'color': 'var(--text-border)', 'lineHeight': '1.2'})
+                ])
+            ], style={'display': 'flex', 'alignItems': 'center', 'gap': '13px'})
+        ], style={**ESTILO_TARJETA, 'padding': '14px 18px', 'marginBottom': '16px'}),
+
+        html.H3("Análisis de Carga de Trabajo (FTE)", className="serveo-titulo-pagina", style={'display': 'none'}),
         
         # --- BARRA DE FILTROS SUPERIOR (NUEVO FILTRO DE SEDE) ---
         html.Div([
@@ -100,35 +149,28 @@ def layout():
                     multi=True
                 )
             ], className="serveo-input-wrapper", style={'flex': 'none', 'width': '300px'})
-        ], className="contenedor-filtros", style={'backgroundColor': 'var(--card-divider)', 'alignItems': 'flex-end', 'justifyContent': 'flex-start'}),
+        ], className="contenedor-filtros", style={'backgroundColor': 'var(--card-divider)', 'alignItems': 'flex-end', 'justifyContent': 'flex-start', 'border': '1px solid #ededed'}),
         
         # --- GRÁFICOS CON ENVOLTORIO ESTANDARIZADO ---
-        html.H4("En Estudio", className="serveo-titulo-seccion", style={'marginTop': '32px'}),
+        header_seccion("busqueda", "Activas", "En estudio", tono='estudio'),
         dcc.Loading(
             type="circle", color="#FF4E00",
-            children=dcc.Graph(
-                id='grafico-carga-estudio', 
-                style={
-                    'border': 'var(--border-solid)', 
-                    'borderRadius': 'var(--radius-container)', 
-                    'padding': '16px', 
-                    'marginBottom': '32px',
-                    'backgroundColor': 'var(--bg-main)'
-                }
+            children=html.Div(
+                dcc.Graph(
+                    id='grafico-carga-estudio',
+                    style={'padding': '16px'}
+                ), style={**ESTILO_TARJETA, 'marginBottom': '8px'}
             )
         ),
         
-        html.H4("Estudio Previo", className="serveo-titulo-seccion"),
+        header_seccion("documento", "Preliminar", "Estudio previo", tono='previo'),
         dcc.Loading(
             type="circle", color="#FF4E00",
-            children=dcc.Graph(
-                id='grafico-carga-previo', 
-                style={
-                    'border': 'var(--border-solid)', 
-                    'borderRadius': 'var(--radius-container)', 
-                    'padding': '16px',
-                    'backgroundColor': 'var(--bg-main)'
-                }
+            children=html.Div(
+                dcc.Graph(
+                    id='grafico-carga-previo',
+                    style={'padding': '16px'}
+                ), style=ESTILO_TARJETA
             )
         )
     ], style={'paddingBottom': '40px'})
@@ -208,7 +250,7 @@ def register_callbacks(app):
         
         def grafico_vacio(mensaje):
             fig = px.bar(title=mensaje)
-            fig.update_layout(plot_bgcolor='#FFFFFF', paper_bgcolor='#FFFFFF', font=dict(family="Outfit", color="#474751"))
+            fig.update_layout(plot_bgcolor='#FFFFFF', paper_bgcolor='#FFFFFF', font=dict(family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", color="#474751"))
             return fig
 
         if df_cron.empty:
@@ -373,7 +415,7 @@ def register_callbacks(app):
                 mode='text',
                 text=df_totales['Carga (FTE)'].apply(lambda x: f"{x:.2f}" if x > 0 else ""),
                 textposition='top center',
-                textfont=dict(family="Outfit", size=13, color="#474751"),
+                textfont=dict(family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", size=13, color="#474751"),
                 showlegend=False,
                 hoverinfo='skip'
             ))
@@ -384,7 +426,7 @@ def register_callbacks(app):
             fig.update_layout(
                 plot_bgcolor='#FFFFFF',
                 paper_bgcolor='#FFFFFF',
-                font=dict(family="Outfit", color="#474751"),
+                font=dict(family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", color="#474751"),
                 title_font_color="#FF4E00",
                 xaxis_title="",
                 yaxis_title="Esfuerzo (FTE)",

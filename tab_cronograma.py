@@ -4,6 +4,7 @@ import pandas as pd
 import datetime
 import numpy as np
 from utils.data_manager import obtener_datos_eficiente, procesar_cronograma, parsear_fecha_es
+from utils.icons import icono
 
 def generar_estilos_tabla(col_calendario, columnas_fin_semana):
     estilos_celdas_condicionales = [
@@ -61,11 +62,11 @@ def generar_estilos_tabla(col_calendario, columnas_fin_semana):
         'style_header': {
             'backgroundColor': '#FFFFFF', 
             'color': '#FF4E00', 
-            'border': '1px solid #474751',
+            'border': '1px solid #e5e5e5',
             'fontWeight': 'bold',
             'fontSize': '9px',
             'textTransform': 'uppercase',
-            'fontFamily': "'Outfit', sans-serif",
+            'fontFamily': "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             'textAlign': 'center',
             'height': '40px', 'minHeight': '40px', 'maxHeight': '40px',
             'whiteSpace': 'normal'
@@ -73,8 +74,8 @@ def generar_estilos_tabla(col_calendario, columnas_fin_semana):
         'style_cell': {
             'backgroundColor': '#FFFFFF', 
             'color': '#474751', 
-            'border': '1px solid #474751', 
-            'fontFamily': "'Outfit', sans-serif",
+            'border': '1px solid #f0f0f0', 
+            'fontFamily': "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             'fontSize': '13px',
             'padding': '0px 12px',
             'textAlign': 'left',
@@ -87,12 +88,47 @@ def generar_estilos_tabla(col_calendario, columnas_fin_semana):
         'style_data_conditional': estilos_datos_condicionales
     }
 
+# --- ESTILO DE TARJETA BASE (estilo Salesforce / Lightning, look Serveo) ---
+ESTILO_TARJETA = {
+    'backgroundColor': '#FFFFFF',
+    'border': '1px solid #e5e5e5',
+    'borderRadius': 'var(--radius-container)',
+    'boxShadow': '0 1px 2px rgba(71, 71, 81, 0.05)',
+    'overflow': 'hidden'
+}
+
+ESTILO_BADGE_SECCION = {
+    'pendiente': {'color': '#a86100', 'backgroundColor': '#fdf0dd'},
+    'estudio': {'color': '#9a3412', 'backgroundColor': '#ffe1d0'},
+    'previo': {'color': '#4b327f', 'backgroundColor': '#ece4fb'},
+    'global': {'color': '#1d4ed8', 'backgroundColor': '#dbeafe'},
+}
+
+
+def header_seccion(nombre_icono, etiqueta, titulo, tono='global'):
+    estilo_badge = ESTILO_BADGE_SECCION.get(tono, ESTILO_BADGE_SECCION['global'])
+    return html.Div([
+        html.Div([
+            html.Img(src=icono(nombre_icono, color=estilo_badge['color']), style={
+                'width': '36px', 'height': '36px', 'borderRadius': '8px',
+                'backgroundColor': estilo_badge['backgroundColor'],
+                'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center',
+                'padding': '8px', 'boxSizing': 'border-box', 'flex': 'none'
+            }),
+            html.Div([
+                html.Div(etiqueta, style={'fontSize': '11px', 'color': 'var(--gray-66)', 'fontWeight': '700', 'textTransform': 'uppercase', 'letterSpacing': '0.03em'}),
+                html.Div(titulo, style={'fontSize': '16px', 'fontWeight': '700', 'color': 'var(--text-border)', 'lineHeight': '1.2'})
+            ])
+        ], style={'display': 'flex', 'alignItems': 'center', 'gap': '12px'})
+    ], style={'marginBottom': '14px', 'marginTop': '28px'})
+
+
 # --- TARJETA CLÁSICA (UN VALOR) ---
 def crear_tarjeta_kpi(id_componente, titulo, bg_color='#FFFFFF'):
     return html.Div([
         html.Div(titulo, style={'fontSize': '10px', 'color': 'var(--gray-66)', 'textTransform': 'uppercase', 'fontWeight': '700', 'letterSpacing': '0.5px'}),
-        html.Div("0", id=id_componente, style={'fontSize': '20px', 'fontWeight': '700', 'color': 'var(--color-title)', 'marginTop': '4px'})
-    ], className="card-serveo", style={'flex': '1', 'padding': '16px', 'marginBottom': '0', 'backgroundColor': bg_color, 'boxShadow': '0 2px 8px rgba(71, 71, 81, 0.04)'})
+        html.Div("0", id=id_componente, style={'fontSize': '22px', 'fontWeight': '700', 'color': 'var(--color-title)', 'marginTop': '6px'})
+    ], style={**ESTILO_TARJETA, 'flex': '1', 'padding': '16px 18px', 'backgroundColor': bg_color})
 
 # --- TARJETA DOBLE (DESGLOSE TÉCNICOS / BAM) ---
 def crear_tarjeta_kpi_desglose(id_tec, id_bam, titulo, bg_color='#FFFFFF'):
@@ -100,15 +136,15 @@ def crear_tarjeta_kpi_desglose(id_tec, id_bam, titulo, bg_color='#FFFFFF'):
         html.Div(titulo, style={'fontSize': '10px', 'color': 'var(--gray-66)', 'textTransform': 'uppercase', 'fontWeight': '700', 'letterSpacing': '0.5px'}),
         html.Div([
             html.Div([
-                html.Span("TEC: ", style={'fontSize': '11px', 'color': 'var(--text-border)', 'fontWeight': 'bold'}),
-                html.Span("0", id=id_tec, style={'fontSize': '18px', 'fontWeight': '700', 'color': 'var(--color-title)'})
-            ], style={'flex': '1', 'display': 'flex', 'alignItems': 'baseline', 'gap': '6px'}),
+                html.Span("TEC", style={'fontSize': '10px', 'color': 'var(--text-border)', 'fontWeight': '700', 'backgroundColor': 'var(--card-divider)', 'borderRadius': '4px', 'padding': '1px 6px'}),
+                html.Span("0", id=id_tec, style={'fontSize': '19px', 'fontWeight': '700', 'color': 'var(--color-title)'})
+            ], style={'flex': '1', 'display': 'flex', 'alignItems': 'baseline', 'gap': '8px'}),
             html.Div([
-                html.Span("BAM: ", style={'fontSize': '11px', 'color': 'var(--accent)', 'fontWeight': 'bold'}),
-                html.Span("0", id=id_bam, style={'fontSize': '18px', 'fontWeight': '700', 'color': 'var(--accent)'})
-            ], style={'flex': '1', 'display': 'flex', 'alignItems': 'baseline', 'gap': '6px', 'borderLeft': '1px solid var(--card-divider)', 'paddingLeft': '12px'})
+                html.Span("BAM", style={'fontSize': '10px', 'color': '#fff', 'fontWeight': '700', 'backgroundColor': 'var(--accent)', 'borderRadius': '4px', 'padding': '1px 6px'}),
+                html.Span("0", id=id_bam, style={'fontSize': '19px', 'fontWeight': '700', 'color': 'var(--accent)'})
+            ], style={'flex': '1', 'display': 'flex', 'alignItems': 'baseline', 'gap': '8px', 'borderLeft': '1px solid var(--card-divider)', 'paddingLeft': '14px'})
         ], style={'display': 'flex', 'marginTop': '8px'})
-    ], className="card-serveo", style={'flex': '1.5', 'padding': '16px', 'marginBottom': '0', 'backgroundColor': bg_color, 'boxShadow': '0 2px 8px rgba(71, 71, 81, 0.04)'})
+    ], style={**ESTILO_TARJETA, 'flex': '1.5', 'padding': '16px 18px', 'backgroundColor': bg_color})
     
 def layout():
     _, df_cronograma, df_eq, _, _ = obtener_datos_eficiente(force_reload=False)
@@ -192,8 +228,23 @@ def layout():
 
     return html.Div([
 
-        html.H3("CRONOGRAMA DEL EQUIPO", className="serveo-titulo-pagina"),
-        
+        # --- HEADER DE PÁGINA (estilo Salesforce / Claude design) ---
+        html.Div([
+            html.Div([
+                html.Img(src=icono('calendario'), style={
+                    'width': '42px', 'height': '42px', 'borderRadius': '8px', 'background': 'var(--accent)',
+                    'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'padding': '11px',
+                    'boxSizing': 'border-box', 'flex': 'none'
+                }),
+                html.Div([
+                    html.Div("Cronograma", style={'fontSize': '12px', 'color': 'var(--gray-66)', 'fontWeight': '600'}),
+                    html.Div("Carga del equipo · FTE diario", style={'fontSize': '20px', 'fontWeight': '700', 'color': 'var(--text-border)', 'lineHeight': '1.2'})
+                ])
+            ], style={'display': 'flex', 'alignItems': 'center', 'gap': '13px'})
+        ], style={**ESTILO_TARJETA, 'padding': '14px 18px', 'marginBottom': '16px'}),
+
+        html.H3("CRONOGRAMA DEL EQUIPO", className="serveo-titulo-pagina", style={'display': 'none'}),
+
         # --- BARRA DE FILTROS SUPERIOR ---
         html.Div([
             html.Div([
@@ -233,62 +284,68 @@ def layout():
                 dcc.Dropdown(id='drop-filtro-tec-cron', options=opciones_tecnicos, placeholder="Todo el equipo operativo...", clearable=True, multi=True)
             ], className="serveo-input-wrapper", style={'flex': 'none', 'width': '340px'})
             
-        ], className="contenedor-filtros", style={'backgroundColor': 'var(--card-divider)', 'alignItems': 'flex-end', 'justifyContent': 'flex-start', 'flexWrap': 'wrap', 'gap': '16px'}),
+        ], className="contenedor-filtros", style={'backgroundColor': 'var(--card-divider)', 'alignItems': 'flex-end', 'justifyContent': 'flex-start', 'flexWrap': 'wrap', 'gap': '16px', 'border': '1px solid #ededed'}),
         
-        # --- NUEVA SECCIÓN: VISIÓN GLOBAL DEL PIPELINE ---
-        html.H3("Visión Global del Pipeline", className="serveo-titulo-seccion", style={'color': 'var(--color-title)', 'marginBottom': '12px', 'marginTop': '24px'}),
+        # --- VISIÓN GLOBAL DEL PIPELINE ---
+        header_seccion("matriz", "Visión global", "Pipeline completo", tono='global'),
         html.Div([
             crear_tarjeta_kpi('kpi-global-pres', 'Presupuesto Total Agregado', bg_color='#FAFAFA'),
             crear_tarjeta_kpi_desglose('kpi-global-hor', 'kpi-global-hor-bam', 'Horas Totales Requeridas', bg_color='#FAFAFA'),
             crear_tarjeta_kpi_desglose('kpi-global-fte', 'kpi-global-fte-bam', 'FTEs Globales (Hoy)', bg_color='#FAFAFA')
-        ], style={'display': 'flex', 'gap': '16px', 'marginBottom': '40px', 'borderBottom': '1px solid var(--card-divider)', 'paddingBottom': '32px'}),
+        ], style={'display': 'flex', 'gap': '16px', 'marginBottom': '8px'}),
 
         # --- TABLA: LICITACIONES NO ASIGNADAS ---
-        html.H3("Pendientes de Asignación", className="serveo-titulo-seccion", style={'color': 'var(--semantic-negative)', 'marginBottom': '12px'}),
+        header_seccion("reloj", "Pendientes", "Pendientes de asignación", tono='pendiente'),
         html.Div([
             crear_tarjeta_kpi('kpi-pend-pres', 'Presupuesto'),
             crear_tarjeta_kpi_desglose('kpi-pend-hor', 'kpi-pend-hor-bam', 'Total Horas Licitación'),
             crear_tarjeta_kpi_desglose('kpi-pend-fte', 'kpi-pend-fte-bam', 'FTEs Totales (Hoy)')
         ], style={'display': 'flex', 'gap': '16px', 'marginBottom': '16px'}),
-        dash_table.DataTable(
-            id='tabla-no-asignadas', 
-            columns=cols_pendientes, 
-            fixed_columns={'headers': True, 'data': len(fijas_pendientes)},
-            style_table={'overflowX': 'auto', 'width': '100%', 'minWidth': '100%', 'maxWidth': '100%', 'marginBottom': '40px'},
-            cell_selectable=False,
-            **config_tabla
+        html.Div(
+            dash_table.DataTable(
+                id='tabla-no-asignadas', 
+                columns=cols_pendientes, 
+                fixed_columns={'headers': True, 'data': len(fijas_pendientes)},
+                style_table={'overflowX': 'auto', 'width': '100%', 'minWidth': '100%', 'maxWidth': '100%'},
+                cell_selectable=False,
+                **config_tabla
+            ), style={**ESTILO_TARJETA, 'marginBottom': '8px'}
         ),
 
         # --- TABLA: EN ESTUDIO ---
-        html.H3("En Estudio", className="serveo-titulo-seccion", style={'color': 'var(--accent)', 'marginBottom': '12px'}),
+        header_seccion("busqueda", "Activas", "En estudio", tono='estudio'),
         html.Div([
             crear_tarjeta_kpi('kpi-est-pres', 'Presupuesto'),
             crear_tarjeta_kpi_desglose('kpi-est-hor', 'kpi-est-hor-bam', 'Total Horas Licitación'),
             crear_tarjeta_kpi_desglose('kpi-est-fte', 'kpi-est-fte-bam', 'FTEs Totales (Hoy)')
         ], style={'display': 'flex', 'gap': '16px', 'marginBottom': '16px'}),
-        dash_table.DataTable(
-            id='tabla-estudio', 
-            columns=cols_activas, 
-            fixed_columns={'headers': True, 'data': len(fijas_activas)},
-            style_table={'overflowX': 'auto', 'width': '100%', 'minWidth': '100%', 'maxWidth': '100%', 'marginBottom': '40px'},
-            cell_selectable=False,
-            **config_tabla
+        html.Div(
+            dash_table.DataTable(
+                id='tabla-estudio', 
+                columns=cols_activas, 
+                fixed_columns={'headers': True, 'data': len(fijas_activas)},
+                style_table={'overflowX': 'auto', 'width': '100%', 'minWidth': '100%', 'maxWidth': '100%'},
+                cell_selectable=False,
+                **config_tabla
+            ), style={**ESTILO_TARJETA, 'marginBottom': '8px'}
         ),
         
         # --- TABLA: ESTUDIO PREVIO ---
-        html.H3("Estudio Previo", className="serveo-titulo-seccion", style={'color': 'var(--accent)', 'marginBottom': '12px'}),
+        header_seccion("documento", "Preliminar", "Estudio previo", tono='previo'),
         html.Div([
             crear_tarjeta_kpi('kpi-prev-pres', 'Presupuesto'),
             crear_tarjeta_kpi_desglose('kpi-prev-hor', 'kpi-prev-hor-bam', 'Total Horas Licitación'),
             crear_tarjeta_kpi_desglose('kpi-prev-fte', 'kpi-prev-fte-bam', 'FTEs Totales (Hoy)')
         ], style={'display': 'flex', 'gap': '16px', 'marginBottom': '16px'}),
-        dash_table.DataTable(
-            id='tabla-previo', 
-            columns=cols_activas, 
-            fixed_columns={'headers': True, 'data': len(fijas_activas)},
-            style_table={'overflowX': 'auto', 'width': '100%', 'minWidth': '100%', 'maxWidth': '100%'},
-            cell_selectable=False,
-            **config_tabla
+        html.Div(
+            dash_table.DataTable(
+                id='tabla-previo', 
+                columns=cols_activas, 
+                fixed_columns={'headers': True, 'data': len(fijas_activas)},
+                style_table={'overflowX': 'auto', 'width': '100%', 'minWidth': '100%', 'maxWidth': '100%'},
+                cell_selectable=False,
+                **config_tabla
+            ), style=ESTILO_TARJETA
         )
     ], style={'paddingBottom': '40px'})
 

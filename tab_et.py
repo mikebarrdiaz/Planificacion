@@ -3,7 +3,17 @@ import dash
 import pandas as pd
 import datetime
 from utils.data_manager import obtener_datos_eficiente, obtener_calendarios, parsear_fecha_es
+from utils.icons import icono
 import warnings
+
+# --- ESTILO DE TARJETA BASE (estilo Salesforce / Lightning, look Serveo) ---
+ESTILO_TARJETA = {
+    'backgroundColor': '#FFFFFF',
+    'border': '1px solid #e5e5e5',
+    'borderRadius': 'var(--radius-container)',
+    'boxShadow': '0 1px 2px rgba(71, 71, 81, 0.05)',
+    'overflow': 'hidden'
+}
 
 def generar_matriz_et(tecnicos_seleccionados=None, roles_seleccionados=None, niveles_seleccionados=None, capas_activas=None):
     """
@@ -260,7 +270,23 @@ def layout():
     ]
 
     return html.Div([
-        html.H3("Matriz de Visualización del equipo", className="serveo-titulo-pagina"),
+
+        # --- HEADER DE PÁGINA (estilo Salesforce / Claude design) ---
+        html.Div([
+            html.Div([
+                html.Img(src=icono('matriz'), style={
+                    'width': '42px', 'height': '42px', 'borderRadius': '8px', 'background': 'var(--accent)',
+                    'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'padding': '11px',
+                    'boxSizing': 'border-box', 'flex': 'none'
+                }),
+                html.Div([
+                    html.Div("Equipo Técnico", style={'fontSize': '12px', 'color': 'var(--gray-66)', 'fontWeight': '600'}),
+                    html.Div("Matriz de disponibilidad", style={'fontSize': '20px', 'fontWeight': '700', 'color': 'var(--text-border)', 'lineHeight': '1.2'})
+                ])
+            ], style={'display': 'flex', 'alignItems': 'center', 'gap': '13px'})
+        ], style={**ESTILO_TARJETA, 'padding': '14px 18px', 'marginBottom': '16px'}),
+
+        html.H3("Matriz de Visualización del equipo", className="serveo-titulo-pagina", style={'display': 'none'}),
         
         # --- BARRA DE FILTROS SUPERIOR ---
         html.Div([
@@ -299,9 +325,9 @@ def layout():
                 ], className="serveo-input-wrapper", style={'flex': 'none', 'width': '320px'})
                 
             ], style={'display': 'flex', 'alignItems': 'flex-end', 'width': '100%'})
-        ], className="contenedor-filtros", style={'backgroundColor': 'var(--card-divider)', 'padding': '16px', 'borderRadius': '12px', 'marginBottom': '16px'}),
+        ], className="contenedor-filtros", style={'backgroundColor': 'var(--card-divider)', 'padding': '16px', 'borderRadius': '12px', 'marginBottom': '16px', 'border': '1px solid #ededed'}),
 
-        # --- NUEVO: CONTROL DE CAPAS VISUALES ---
+        # --- CONTROL DE CAPAS VISUALES ---
         html.Div([
             html.Label("Capas Visibles en la Matriz:", className="etiqueta-dato", style={'marginRight': '24px', 'marginBottom': '0'}),
             dcc.Checklist(
@@ -315,57 +341,58 @@ def layout():
                 inline=True,
                 style={'display': 'flex', 'alignItems': 'center', 'color': 'var(--color-title)', 'fontSize': '12px', 'fontWeight': 'bold'}
             )
-        ], style={'display': 'flex', 'alignItems': 'center', 'backgroundColor': '#FAFAFA', 'padding': '12px 16px', 'borderRadius': '8px', 'border': '1px solid var(--card-divider)', 'marginBottom': '24px'}),
+        ], style={**ESTILO_TARJETA, 'display': 'flex', 'alignItems': 'center', 'backgroundColor': '#FAFAFA', 'padding': '12px 16px', 'marginBottom': '16px', 'boxShadow': 'none'}),
 
         # --- TABLA MATRIZ ---
-        dash_table.DataTable(
-            id='tabla-matriz-et',
-            columns=columnas_tabla,
-            data=df_matriz.to_dict('records'),
-            tooltip_data=tooltip_data,
-            tooltip_delay=100,       
-            tooltip_duration=None,   
-            merge_duplicate_headers=True,
-            fixed_columns={'headers': True, 'data': 1},
-            fixed_rows={'headers': True},
-            cell_selectable=False,
-            style_header={
-                'backgroundColor': '#FFFFFF', 'color': '#FF4E00', 'fontWeight': 'bold',
-                'border': '1px solid #474751', 'fontFamily': "'Outfit', sans-serif",
-                'fontSize': '9px', 'textTransform': 'uppercase', 'textAlign': 'center',
-                'minWidth': '65px', 'width': '65px', 'maxWidth': '65px'
-            },
-            style_header_conditional=estilos_cabecera_condicionales,
-            style_cell={
-                'backgroundColor': '#FFFFFF', 'color': '#474751', 'border': '1px solid #F0EEED',
-                'padding': '8px 4px', 'textAlign': 'center', 'fontFamily': "'Outfit', sans-serif",
-                'fontSize': '11px', 'minWidth': '65px', 'width': '65px', 'maxWidth': '65px'
-            },
-            style_cell_conditional=[
-                {
-                    'if': {'column_id': 'Técnico'},
-                    'minWidth': '220px', 'width': '220px', 'maxWidth': '220px',
-                    'textAlign': 'left', 'fontWeight': 'bold',
-                    'backgroundColor': '#FFFFFF',
-                    'borderRight': '2px solid #474751'
-                }
-            ],
-            style_data_conditional=estilos_condicionales,
-            style_table={
-                'overflowX': 'auto', 
-                'overflowY': 'auto', 
-                'maxHeight': '80vh', 
-                'minWidth': '100%', 
-                'borderRadius': '6px'
-            },
-            css=[
-                {
-                    'selector': 'td.dash-cell[data-dash-column]:not([data-dash-column="Técnico"])',
-                    'rule': '''
-                        color: #FFFFFF !important;
-                    '''
-                }
-            ]
+        html.Div(
+            dash_table.DataTable(
+                id='tabla-matriz-et',
+                columns=columnas_tabla,
+                data=df_matriz.to_dict('records'),
+                tooltip_data=tooltip_data,
+                tooltip_delay=100,       
+                tooltip_duration=None,   
+                merge_duplicate_headers=True,
+                fixed_columns={'headers': True, 'data': 1},
+                fixed_rows={'headers': True},
+                cell_selectable=False,
+                style_header={
+                    'backgroundColor': '#FFFFFF', 'color': '#FF4E00', 'fontWeight': 'bold',
+                    'border': '1px solid #e5e5e5', 'fontFamily': "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+                    'fontSize': '9px', 'textTransform': 'uppercase', 'textAlign': 'center',
+                    'minWidth': '65px', 'width': '65px', 'maxWidth': '65px'
+                },
+                style_header_conditional=estilos_cabecera_condicionales,
+                style_cell={
+                    'backgroundColor': '#FFFFFF', 'color': '#474751', 'border': '1px solid #F0EEED',
+                    'padding': '8px 4px', 'textAlign': 'center', 'fontFamily': "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+                    'fontSize': '11px', 'minWidth': '65px', 'width': '65px', 'maxWidth': '65px'
+                },
+                style_cell_conditional=[
+                    {
+                        'if': {'column_id': 'Técnico'},
+                        'minWidth': '220px', 'width': '220px', 'maxWidth': '220px',
+                        'textAlign': 'left', 'fontWeight': 'bold',
+                        'backgroundColor': '#FFFFFF',
+                        'borderRight': '2px solid #e5e5e5'
+                    }
+                ],
+                style_data_conditional=estilos_condicionales,
+                style_table={
+                    'overflowX': 'auto', 
+                    'overflowY': 'auto', 
+                    'maxHeight': '80vh', 
+                    'minWidth': '100%'
+                },
+                css=[
+                    {
+                        'selector': 'td.dash-cell[data-dash-column]:not([data-dash-column="Técnico"])',
+                        'rule': '''
+                            color: #FFFFFF !important;
+                        '''
+                    }
+                ]
+            ), style=ESTILO_TARJETA
         )
     ], style={'paddingBottom': '40px'})
 

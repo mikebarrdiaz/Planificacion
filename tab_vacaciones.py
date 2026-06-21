@@ -5,6 +5,16 @@ import plotly.graph_objects as go
 import datetime
 import pandas as pd
 from utils.data_manager import obtener_datos_eficiente, sincronizar_vacaciones
+from utils.icons import icono
+
+# --- ESTILO DE TARJETA BASE (estilo Salesforce / Lightning, look Serveo) ---
+ESTILO_TARJETA = {
+    'backgroundColor': '#FFFFFF',
+    'border': '1px solid #e5e5e5',
+    'borderRadius': 'var(--radius-container)',
+    'boxShadow': '0 1px 2px rgba(71, 71, 81, 0.05)',
+    'overflow': 'hidden'
+}
 
 def generar_grafico_vacaciones(df_vacaciones, nombres_equipo):
     if not nombres_equipo:
@@ -41,11 +51,11 @@ def generar_grafico_vacaciones(df_vacaciones, nombres_equipo):
     )
     
     hoy_str = datetime.date.today().strftime('%Y-%m-%d')
-    fig.add_vline(x=hoy_str, line_width=2, line_dash="dash", line_color="#FF4E00", annotation_text="Hoy", annotation_position="top", annotation_font_color="#FF4E00", annotation_font_family="Outfit")
+    fig.add_vline(x=hoy_str, line_width=2, line_dash="dash", line_color="#FF4E00", annotation_text="Hoy", annotation_position="top", annotation_font_color="#FF4E00", annotation_font_family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif")
     
     fig.update_layout(
         plot_bgcolor='#FFFFFF', paper_bgcolor='#FFFFFF',
-        font=dict(family="Outfit", color="#474751"),
+        font=dict(family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", color="#474751"),
         title="Cronograma de Ausencias Global", title_font_color="#FF4E00",
         xaxis=dict(showgrid=True, gridcolor="#F0EEED", title=""),
         yaxis=dict(showgrid=True, gridcolor="#F0EEED", title=""),
@@ -117,11 +127,11 @@ def generar_tarjetas_ausencias(df_vacaciones):
             html.Div([
                 html.Span(nombre, style={'fontWeight': '700', 'fontSize': '15px', 'color': 'var(--color-title)'}),
                 html.Span(f"{len(bloques_ausencias)} Registro(s)", style={'fontSize': '10px', 'color': 'var(--gray-66)', 'textTransform': 'uppercase', 'fontWeight': 'bold'})
-            ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'marginBottom': '12px', 'borderBottom': '1px solid var(--text-border)', 'paddingBottom': '8px'}),
+            ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'marginBottom': '12px', 'borderBottom': '1px solid #f0f0f0', 'paddingBottom': '10px'}),
             
             html.Div(bloques_ausencias, style={'display': 'flex', 'flexDirection': 'column', 'gap': '4px'})
             
-        ], className="card-serveo", style={'marginBottom': '0', 'boxShadow': '0 4px 12px rgba(71, 71, 81, 0.03)', 'padding': '20px'})
+        ], className="card-serveo", style={**ESTILO_TARJETA, 'marginBottom': '0', 'padding': '20px'})
         
         tarjetas.append(tarjeta)
 
@@ -150,14 +160,30 @@ def layout(rol='lector'):
     estilo_panel_dual = {'display': 'flex', 'gap': '24px', 'marginBottom': '32px'} if rol == 'editor' else {'display': 'none'}
 
     return html.Div([
-        html.H3("Panel de Gestión de Ausencias", className="serveo-titulo-pagina"),
+
+        # --- HEADER DE PÁGINA (estilo Salesforce / Claude design) ---
+        html.Div([
+            html.Div([
+                html.Img(src=icono('ausencia'), style={
+                    'width': '42px', 'height': '42px', 'borderRadius': '8px', 'background': 'var(--accent)',
+                    'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'padding': '11px',
+                    'boxSizing': 'border-box', 'flex': 'none'
+                }),
+                html.Div([
+                    html.Div("Ausencias", style={'fontSize': '12px', 'color': 'var(--gray-66)', 'fontWeight': '600'}),
+                    html.Div("Gestión de ausencias", style={'fontSize': '20px', 'fontWeight': '700', 'color': 'var(--text-border)', 'lineHeight': '1.2'})
+                ])
+            ], style={'display': 'flex', 'alignItems': 'center', 'gap': '13px'})
+        ], style={**ESTILO_TARJETA, 'padding': '14px 18px', 'marginBottom': '16px'}),
+
+        html.H3("Panel de Gestión de Ausencias", className="serveo-titulo-pagina", style={'display': 'none'}),
         
         # --- PANEL DE CONTROL DUAL ORIGINAL ---
         html.Div([
             
             # --- AÑADIR REGISTRO ---
             html.Div([
-                html.Div("Añadir Nuevo Registro", style={'color': '#FFFFFF', 'backgroundColor': 'var(--text-border)', 'padding': '8px 16px', 'fontSize': '9px', 'fontWeight': 'bold', 'textTransform': 'uppercase', 'marginBottom': '24px', 'borderRadius': '6px', 'display': 'inline-block'}),
+                html.Div("Añadir nuevo registro", style={'color': '#FFFFFF', 'backgroundColor': 'var(--text-border)', 'padding': '8px 16px', 'fontSize': '9px', 'fontWeight': 'bold', 'textTransform': 'uppercase', 'marginBottom': '24px', 'borderRadius': '6px', 'display': 'inline-block'}),
                 
                 html.Div([
                     html.Div([
@@ -182,11 +208,11 @@ def layout(rol='lector'):
                     html.Button('Añadir', id='btn-add-vac', n_clicks=0, className="btn-serveo-primario", style={'alignSelf': 'flex-end', 'height': '32px'})
                 ], style={'display': 'flex', 'gap': '16px', 'marginBottom': '24px'})
                 
-            ], className="serveo-panel-accion", style={'flex': '2', 'marginBottom': '0'}),
+            ], style={**ESTILO_TARJETA, 'flex': '2', 'padding': '24px'}),
 
             # --- ELIMINAR REGISTRO ---
             html.Div([
-                html.Div("Eliminar Registro Existente", style={'color': '#FFFFFF', 'backgroundColor': 'var(--semantic-negative)', 'padding': '8px 16px', 'fontSize': '9px', 'fontWeight': 'bold', 'textTransform': 'uppercase', 'marginBottom': '24px', 'borderRadius': '6px', 'display': 'inline-block'}),
+                html.Div("Eliminar registro existente", style={'color': '#FFFFFF', 'backgroundColor': 'var(--semantic-negative)', 'padding': '8px 16px', 'fontSize': '9px', 'fontWeight': 'bold', 'textTransform': 'uppercase', 'marginBottom': '24px', 'borderRadius': '6px', 'display': 'inline-block'}),
                 
                 html.Div([
                     html.Label("Selecciona el registro a borrar:", className="etiqueta-dato"),
@@ -195,7 +221,7 @@ def layout(rol='lector'):
                 
                 html.Button('Eliminar Seleccionado', id='btn-del-vac', n_clicks=0, className="btn-serveo-negativo", style={'width': '100%'})
                 
-            ], className="serveo-panel-accion", style={'flex': '1', 'marginBottom': '0'})
+            ], style={**ESTILO_TARJETA, 'flex': '1', 'padding': '24px'})
             
         ], style=estilo_panel_dual), # <--- AQUÍ APLICAMOS LA REGLA SIN ROMPER LA ESTRUCTURA HTML
         
@@ -203,19 +229,16 @@ def layout(rol='lector'):
         html.Div(id='msj-accion-vac', style={'marginBottom': '24px', 'fontWeight': 'bold', 'fontFamily': 'var(--font-family)', 'fontSize': '13px'}),
         
         # --- SECCIÓN DE TARJETAS INTEGRADAS POR PERSONA ---
-        html.H3("Fichas de Disponibilidad de la Plantilla", className="serveo-titulo-seccion"),
+        html.H3("Fichas de Disponibilidad de la Plantilla", className="serveo-titulo-seccion", style={'color': 'var(--gray-66)', 'textTransform': 'uppercase', 'fontWeight': '700', 'fontSize': '12px', 'letterSpacing': '0.03em', 'marginBottom': '14px', 'marginTop': '8px'}),
         html.Div(id='contenedor-tarjetas-vacaciones', children=tarjetas_iniciales),
         
         # --- GRÁFICO GANTT ---
-        dcc.Graph(
-            id='grafico-vac', 
-            figure=figura_inicial, 
-            style={
-                'border': 'var(--border-solid)', 
-                'borderRadius': 'var(--radius-container)', 
-                'padding': '16px', 
-                'backgroundColor': 'var(--bg-main)'
-            }
+        html.Div(
+            dcc.Graph(
+                id='grafico-vac', 
+                figure=figura_inicial, 
+                style={'padding': '16px'}
+            ), style=ESTILO_TARJETA
         )
     ], style={'paddingBottom': '40px'})
 

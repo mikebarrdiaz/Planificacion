@@ -7,58 +7,107 @@ USUARIOS_AUTORIZADOS = {
     'oficina': {'pass': 'serveo2026', 'rol': 'lector'}   # Solo ver
 }
 
+
 def layout():
     return html.Div([
-        # Contenedor del Overlay oscuro para que el formulario resalte sobre el fondo
+
+        # ================= PANEL IZQUIERDO: MARCA =================
+        html.Div([
+            # Círculos decorativos de fondo (estilo Salesforce)
+            html.Div(style={
+                'position': 'absolute', 'width': '520px', 'height': '520px', 'borderRadius': '50%',
+                'background': 'rgba(255,255,255,0.07)', 'top': '-160px', 'right': '-150px'
+            }),
+            html.Div(style={
+                'position': 'absolute', 'width': '340px', 'height': '340px', 'borderRadius': '50%',
+                'background': 'rgba(255,255,255,0.06)', 'bottom': '-120px', 'left': '-90px'
+            }),
+            html.Div(style={
+                'position': 'absolute', 'width': '200px', 'height': '200px', 'borderRadius': '50%',
+                'border': '1px solid rgba(255,255,255,0.14)', 'bottom': '120px', 'right': '60px'
+            }),
+
+            # Logo + nombre de la app
+            html.Div([
+                html.Img(src='/assets/logo.svg', style={'height': '32px', 'filter': 'brightness(0) invert(1)'}),
+                html.Span("Gestión de Licitaciones", style={
+                    'fontSize': '16px', 'fontWeight': '700', 'color': '#fff', 'letterSpacing': '0.01em'
+                })
+            ], style={'position': 'relative', 'display': 'flex', 'alignItems': 'center', 'gap': '12px'}),
+
+            # Mensaje de marca central
+            html.Div([
+                html.Div("Plataforma corporativa", style={
+                    'fontSize': '13px', 'fontWeight': '700', 'letterSpacing': '0.14em',
+                    'color': 'rgba(255,255,255,0.72)', 'textTransform': 'uppercase', 'marginBottom': '18px'
+                }),
+                html.H1("Planifica licitaciones y la carga del equipo técnico", style={
+                    'fontSize': '38px', 'lineHeight': '1.15', 'fontWeight': '700', 'color': '#fff', 'margin': '0'
+                }),
+                html.P("Gestión de equipo, cronograma de dedicación diaria (FTE) y asignación de licitaciones.", style={
+                    'fontSize': '16px', 'lineHeight': '1.6', 'color': 'rgba(255,255,255,0.86)', 'margin': '20px 0 0', 'maxWidth': '430px'
+                })
+            ], style={'position': 'relative'}),
+
+            # Copyright
+            html.Div("© 2026 · Bidding · Uso interno", style={
+                'position': 'relative', 'fontSize': '12px', 'color': 'rgba(255,255,255,0.66)'
+            })
+
+        ], style={
+            'width': '46%', 'minWidth': '420px', 'position': 'relative',
+            'background': 'linear-gradient(150deg, #FF4E00 0%, #d63e00 56%, #9e2e00 100%)',
+            'display': 'flex', 'flexDirection': 'column', 'justifyContent': 'space-between',
+            'padding': '46px 52px', 'overflow': 'hidden', 'boxSizing': 'border-box'
+        }),
+
+        # ================= PANEL DERECHO: FORMULARIO =================
         html.Div([
             html.Div([
-                # Logo / Cabecera
-                html.Img(src='/assets/logo2.png', style={'height': '80px', 'display': 'block', 'margin': '0 auto', 'marginBottom': '8px'}),
-                html.Div("Plataforma de Planificación Operativa", style={'color': '#474751', 'fontSize': '12px', 'textAlign': 'center', 'marginBottom': '32px', 'fontWeight': 'bold', 'textTransform': 'uppercase'}),
 
-                # Formulario
+                html.Div([
+                    html.Div("Bienvenido, ", style={'fontSize': '13px', 'color': '#706e6b', 'fontWeight': '600'}),
+                    html.H2("Inicia sesión", style={'fontSize': '26px', 'fontWeight': '700', 'color': '#181818', 'margin': '5px 0 0'}),
+                    html.P("Accede con tus credenciales de rol.", style={'fontSize': '14px', 'color': '#706e6b', 'margin': '7px 0 0'})
+                ], style={'marginBottom': '30px'}),
+
                 html.Div([
                     html.Label("Usuario", className="etiqueta-dato"),
-                    # boxSizing asegura que los inputs no se salgan de la caja blanca
-                    dcc.Input(id='login-usuario', type='text', placeholder='Usuario', className="input-filtro", style={'width': '100%', 'boxSizing': 'border-box'})
-                ], style={'marginBottom': '16px'}),
+                    dcc.Input(id='login-usuario', type='text', placeholder='Usuario', className="input-filtro",
+                              style={'width': '100%', 'height': '44px', 'boxSizing': 'border-box'})
+                ], className="serveo-input-wrapper", style={'marginBottom': '16px'}),
 
                 html.Div([
-                    html.Label("Contraseña de Acceso", className="etiqueta-dato"),
-                    dcc.Input(id='login-password', type='password', placeholder='Contraseña', className="input-filtro", style={'width': '100%', 'boxSizing': 'border-box'})
-                ], style={'marginBottom': '32px'}),
+                    html.Label("Contraseña de acceso", className="etiqueta-dato"),
+                    dcc.Input(id='login-password', type='password', placeholder='Contraseña', className="input-filtro",
+                              style={'width': '100%', 'height': '44px', 'boxSizing': 'border-box'})
+                ], className="serveo-input-wrapper", style={'marginBottom': '28px'}),
 
-                html.Button('Accede', id='btn-login', n_clicks=0, className="btn-serveo-primario", style={'width': '100%', 'height': '40px', 'fontSize': '14px', 'boxSizing': 'border-box'}),
+                html.Button('Accede', id='btn-login', n_clicks=0, className="btn-serveo-primario",
+                            style={'width': '100%', 'height': '46px', 'fontSize': '14px', 'boxSizing': 'border-box'}),
 
-                html.Div(id='login-mensaje', style={'color': 'var(--semantic-negative)', 'marginTop': '16px', 'fontSize': '12px', 'textAlign': 'center', 'fontWeight': 'bold', 'fontFamily': 'Outfit'})
+                html.Div(id='login-mensaje', style={
+                    'color': 'var(--semantic-negative)', 'marginTop': '16px', 'fontSize': '12px',
+                    'textAlign': 'center', 'fontWeight': 'bold', 'fontFamily': 'var(--font-family)'
+                })
 
-            ], style={
-                'backgroundColor': '#FFFFFF', 'padding': '48px 40px', 'borderRadius': '12px', 
-                'boxShadow': '0 24px 64px rgba(0, 0, 0, 0.4)', 'width': '380px',
-                'borderTop': '4px solid #FF4E00', 'boxSizing': 'border-box'
-            })
-        ], style={'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'height': '100%', 'width': '100%', 'backgroundColor': 'rgba(0,0,0,0.5)'}) 
-        
+            ], style={'width': '100%', 'maxWidth': '380px'})
+        ], style={
+            'flex': '1', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center',
+            'padding': '40px 24px', 'backgroundColor': '#f3f3f3', 'boxSizing': 'border-box'
+        })
+
     ], style={
-        # --- FIX ANTI-SCROLL DEFINITIVO ---
-        # position 'fixed' anclado a las 4 esquinas hace que la imagen ocupe exactamente 
-        # el espacio visible de la pantalla, ignorando los márgenes del navegador.
-        'position': 'fixed',
-        'top': '0',
-        'left': '0',
-        'right': '0',
-        'bottom': '0',
-        'margin': '0',
-        'padding': '0',
-        'backgroundImage': 'url("/assets/foto_equipo1.jpg")', 
-        'backgroundSize': 'cover',
-        'backgroundPosition': 'center',
-        'zIndex': '9999' # Se asegura de tapar cualquier otra cosa que Dash intente cargar debajo
+        'position': 'fixed', 'top': '0', 'left': '0', 'right': '0', 'bottom': '0',
+        'margin': '0', 'padding': '0', 'display': 'flex',
+        'fontFamily': 'var(--font-family)', 'color': '#181818',
+        'zIndex': '9999', 'overflow': 'hidden'
     })
+
 
 def register_callbacks(app):
     @app.callback(
-        [Output('sesion-usuario', 'data'),
+        [Output('sesion-usuario', 'data', allow_duplicate=True),
          Output('url', 'pathname', allow_duplicate=True),
          Output('login-mensaje', 'children')],
         Input('btn-login', 'n_clicks'),

@@ -8,7 +8,11 @@ from threading import Timer
 # Inicialización
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 server = app.server
-app.title = "Consola Operativa Government"
+app.title = "Gestión de Licitaciones · Government"
+
+# Nombre del equipo/instancia actual. Cuando esta misma base se reutilice
+# para otro equipo, basta con cambiar este valor.
+NOMBRE_EQUIPO_ACTUAL = "Government"
 
 # --- MAPEO DE RUTAS ---
 MAPA_URLS = {
@@ -32,7 +36,7 @@ ESTILO_PESTANA_MODERNA = {
     'backgroundColor': 'transparent',
     'border': 'none',
     'borderBottom': '4px solid transparent',
-    'fontFamily': "'Outfit', sans-serif",
+    'fontFamily': "var(--font-family)",
     'fontSize': '12px',
     'fontWeight': 'bold',
     'textTransform': 'uppercase',
@@ -53,11 +57,19 @@ app.layout = html.Div([
 
     # --- NAVBAR REESTRUCTURADO (Oculto por defecto hasta loguearse) ---
     html.Header([
-        html.Img(src='/assets/logo.svg', style={'height': '36px', 'flexShrink': '0'}, width=160),
+        html.Div([
+            html.Img(src='/assets/logo.svg', style={'height': '36px', 'flexShrink': '0'}, width=160),
+            html.Span(NOMBRE_EQUIPO_ACTUAL, style={
+                'fontSize': '11px', 'fontWeight': '700', 'color': '#FFFFFF',
+                'backgroundColor': 'rgba(255,255,255,0.18)', 'border': '1px solid rgba(255,255,255,0.3)',
+                'borderRadius': 'var(--radius-pill)', 'padding': '4px 12px', 'marginLeft': '14px',
+                'textTransform': 'uppercase', 'letterSpacing': '0.04em', 'flexShrink': '0'
+            })
+        ], style={'display': 'flex', 'alignItems': 'center'}),
         dcc.Tabs(
             id="tabs-aplicacion", 
             value='tab-et',
-            parent_style={'display': 'flex', 'alignItems': 'center', 'height': '100%', 'marginLeft': '100px', 'width': 'auto'},
+            parent_style={'display': 'flex', 'alignItems': 'center', 'height': '100%', 'marginLeft': '60px', 'width': 'auto'},
             style={'height': '100%', 'borderBottom': 'none', 'display': 'flex'},
             children=[
                 dcc.Tab(label='ET', value='tab-et', style=ESTILO_PESTANA_MODERNA, selected_style=ESTILO_PESTANA_ACTIVA),
@@ -67,11 +79,24 @@ app.layout = html.Div([
                 dcc.Tab(label='Ausencias', value='tab-vacaciones', style=ESTILO_PESTANA_MODERNA, selected_style=ESTILO_PESTANA_ACTIVA),
                 dcc.Tab(label='Equipo', value='tab-equipo', style=ESTILO_PESTANA_MODERNA, selected_style=ESTILO_PESTANA_ACTIVA),
             ]
-        )
+        ),
+        # --- MENÚ DE USUARIO (a la derecha) ---
+        html.Div([
+            html.Div([
+                html.Div(id='navbar-usuario-nombre', style={'fontSize': '12px', 'fontWeight': '700', 'color': '#FFFFFF', 'lineHeight': '1.2'}),
+                html.Div(id='navbar-usuario-rol', style={'fontSize': '10px', 'color': 'rgba(255,255,255,0.75)', 'textTransform': 'uppercase', 'letterSpacing': '0.03em'})
+            ], style={'textAlign': 'right'}),
+            html.Button('Cerrar sesión', id='btn-logout', n_clicks=0, style={
+                'height': '32px', 'padding': '0 14px', 'border': '1px solid rgba(255,255,255,0.35)',
+                'background': 'transparent', 'color': '#FFFFFF', 'borderRadius': 'var(--radius-pill)',
+                'fontFamily': 'var(--font-family)', 'fontSize': '11px', 'fontWeight': '700',
+                'textTransform': 'uppercase', 'letterSpacing': '0.02em', 'cursor': 'pointer'
+            })
+        ], style={'marginLeft': 'auto', 'display': 'flex', 'alignItems': 'center', 'gap': '14px'})
     ], id='navbar-header', style={'display': 'none'}), # <- Controlado por el callback
 
     html.Div([
-        html.H2("Planificación y Control Operativo - Government", id='titulo-cabecera', style={'display': 'none'}),
+        html.H2(f"Planificación y Control Operativo · {NOMBRE_EQUIPO_ACTUAL}", id='titulo-cabecera', style={'display': 'none'}),
         html.Div(id='contenido-pestanas')
     ], className='cuerpo-operativo') 
 ], style={'backgroundColor': '#FFFFFF', 'minHeight': '100vh'})
@@ -82,31 +107,44 @@ app.layout = html.Div([
      Output('tabs-aplicacion', 'value'), 
      Output('contenido-pestanas', 'children'),
      Output('navbar-header', 'style'),
-     Output('titulo-cabecera', 'style')],
+     Output('titulo-cabecera', 'style'),
+     Output('navbar-usuario-nombre', 'children'),
+     Output('navbar-usuario-rol', 'children'),
+     Output('sesion-usuario', 'data', allow_duplicate=True)],
     [Input('url', 'pathname'), 
-     Input('tabs-aplicacion', 'value')],
-    [State('sesion-usuario', 'data')] # Leemos el token de seguridad
+     Input('tabs-aplicacion', 'value'),
+     Input('btn-logout', 'n_clicks')],
+    [State('sesion-usuario', 'data')], # Leemos el token de seguridad
+    prevent_initial_call='initial_duplicate'
 )
-def enrutador_maestro(pathname, tab_value, datos_sesion):
+def enrutador_maestro(pathname, tab_value, n_logout, datos_sesion):
     trigger = ctx.triggered_id
+
+    # 0. CIERRE DE SESIÓN: limpia el token y vuelve al login
+    if trigger == 'btn-logout' and n_logout:
+        return '/login', dash.no_update, tab_login.layout(), {'display': 'none'}, {'display': 'none'}, "", "", None
 
     # 1. VERIFICACIÓN DE CREDENCIALES
     autenticado = False
     rol_usuario = 'lector' # Rol por defecto de máxima seguridad
+    nombre_usuario = ''
     
     if datos_sesion and datos_sesion.get('autenticado'):
         autenticado = True
         rol_usuario = datos_sesion.get('rol', 'lector')
+        nombre_usuario = datos_sesion.get('usuario', '')
 
     # Estilos de visibilidad
     estilo_nav_visible = {'backgroundColor': '#FF4E00', 'display': 'flex', 'alignItems': 'center', 'padding': '0 32px', 'height': '88px', 'boxShadow': '0 4px 16px rgba(0,0,0,0.06)'}
     estilo_nav_oculto = {'display': 'none'}
-    estilo_tit_visible = {'color': '#474751', 'fontFamily': "'Outfit', sans-serif", 'fontSize': '28px', 'marginBottom': '40px', 'fontWeight': 'bold'}
+    estilo_tit_visible = {'color': '#474751', 'fontFamily': "var(--font-family)", 'fontSize': '28px', 'marginBottom': '40px', 'fontWeight': 'bold'}
     estilo_tit_oculto = {'display': 'none'}
+
+    etiqueta_rol = {'editor': 'Editor', 'lector': 'Solo lectura'}.get(rol_usuario, rol_usuario)
 
     # Si NO está autenticado, bloqueamos la app y mostramos el Login
     if not autenticado:
-        return '/login', dash.no_update, tab_login.layout(), estilo_nav_oculto, estilo_tit_oculto
+        return '/login', dash.no_update, tab_login.layout(), estilo_nav_oculto, estilo_tit_oculto, "", "", dash.no_update
 
     # 2. ENRUTAMIENTO DE LA APLICACIÓN AUTENTICADA
     def cargar_layout(tab_id, rol):
@@ -126,13 +164,13 @@ def enrutador_maestro(pathname, tab_value, datos_sesion):
         # Si intenta ir a /login pero ya está logueado, lo redirigimos al inicio
         if pathname == '/login':
             nuevo_tab = 'tab-et'
-            return '/', nuevo_tab, cargar_layout(nuevo_tab, rol_usuario), estilo_nav_visible, estilo_tit_visible
+            return '/', nuevo_tab, cargar_layout(nuevo_tab, rol_usuario), estilo_nav_visible, estilo_tit_visible, nombre_usuario, etiqueta_rol, dash.no_update
             
         nuevo_tab = MAPA_URLS.get(pathname, 'tab-et')
-        return dash.no_update, nuevo_tab, cargar_layout(nuevo_tab, rol_usuario), estilo_nav_visible, estilo_tit_visible
+        return dash.no_update, nuevo_tab, cargar_layout(nuevo_tab, rol_usuario), estilo_nav_visible, estilo_tit_visible, nombre_usuario, etiqueta_rol, dash.no_update
     else:
         nueva_url = MAPA_PESTANAS.get(tab_value, '/matriz-et')
-        return nueva_url, dash.no_update, cargar_layout(tab_value, rol_usuario), estilo_nav_visible, estilo_tit_visible
+        return nueva_url, dash.no_update, cargar_layout(tab_value, rol_usuario), estilo_nav_visible, estilo_tit_visible, nombre_usuario, etiqueta_rol, dash.no_update
 
 # Registros (Importante añadir tab_login)
 for tab in [tab_login, tab_cronograma, tab_equipo, tab_vacaciones, tab_asignaciones, tab_carga, tab_et]:

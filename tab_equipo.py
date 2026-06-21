@@ -3,6 +3,16 @@ import dash
 import pandas as pd
 import datetime
 from utils.data_manager import obtener_datos_eficiente, guardar_sqlite_centralizado, obtener_calendarios
+from utils.icons import icono
+
+# --- ESTILO DE TARJETA BASE (estilo Salesforce / Lightning, look Serveo) ---
+ESTILO_TARJETA = {
+    'backgroundColor': '#FFFFFF',
+    'border': '1px solid #e5e5e5',
+    'borderRadius': 'var(--radius-container)',
+    'boxShadow': '0 1px 2px rgba(71, 71, 81, 0.05)',
+    'overflow': 'hidden'
+}
 
 def generar_opciones_empleados(df_equipo):
     if df_equipo.empty:
@@ -82,9 +92,9 @@ def generar_tarjetas_equipo(df_equipo, df_vac):
                     'width': '36px', 'height': '36px', 'borderRadius': '999px',
                     'backgroundColor': 'var(--card-divider)', 'color': 'var(--text-border)',
                     'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center',
-                    'fontWeight': '700', 'fontSize': '12px', 'fontFamily': 'Outfit'
+                    'fontWeight': '700', 'fontSize': '12px', 'fontFamily': 'var(--font-family)'
                 }),
-                html.Span(f"#{tec_id}", style={'fontSize': '11px', 'fontWeight': '700', 'color': 'var(--gray-66)', 'fontFamily': 'Outfit'})
+                html.Span(f"#{tec_id}", style={'fontSize': '11px', 'fontWeight': '700', 'color': 'var(--gray-66)', 'fontFamily': 'var(--font-family)'})
             ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'marginBottom': '12px'}),
             
             html.Div(nombre, style={'fontWeight': '700', 'fontSize': '15px', 'color': 'var(--color-title)', 'marginBottom': '4px', 'textOverflow': 'ellipsis', 'overflow': 'hidden', 'whiteSpace': 'nowrap'}),
@@ -119,7 +129,7 @@ def generar_tarjetas_equipo(df_equipo, df_vac):
                 ], style={'display': 'flex', 'flexDirection': 'column', 'alignItems': 'flex-end', 'flex': '1'})
             ], style={'display': 'flex', 'justifyContent': 'space-between', 'marginTop': '16px', 'paddingTop': '12px', 'borderTop': '1px solid var(--card-divider)'})
             
-        ], className="card-serveo", style={'marginBottom': '0', 'boxShadow': '0 4px 12px rgba(71, 71, 81, 0.02)', 'padding': '16px', 'backgroundColor': color_bg})
+        ], className="card-serveo", style={**ESTILO_TARJETA, 'marginBottom': '0', 'padding': '16px', 'backgroundColor': color_bg})
 
     bloques_jerarquicos = []
 
@@ -143,20 +153,27 @@ def generar_tarjetas_equipo(df_equipo, df_vac):
         bloque_head = html.Div([
             html.Div([
                 html.Div([
-                    html.Span("Head of Bidding:", style={'fontSize': '11px', 'color': 'var(--text-border)', 'textTransform': 'uppercase', 'fontWeight': 'bold', 'display': 'block'}),
-                    html.Span(head_nombre, style={'fontSize': '22px', 'fontWeight': '800', 'color': 'var(--color-title)'})
-                ]),
-                html.Span(f"HEAD ({head_row.get('Sede', 'MAD')})", style={'fontSize': '11px', 'backgroundColor': 'var(--text-border)', 'color': '#FFFFFF', 'padding': '4px 12px', 'borderRadius': '4px', 'fontWeight': 'bold'})
-            ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'borderBottom': '3px solid var(--text-border)', 'paddingBottom': '16px', 'marginBottom': '24px'}),
+                    html.Img(src=icono('usuarios'), style={
+                        'width': '40px', 'height': '40px', 'borderRadius': '8px', 'background': 'var(--text-border)',
+                        'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'padding': '9px',
+                        'boxSizing': 'border-box', 'flex': 'none'
+                    }),
+                    html.Div([
+                        html.Span("Head of Bidding", style={'fontSize': '11px', 'color': 'var(--gray-66)', 'textTransform': 'uppercase', 'fontWeight': 'bold', 'display': 'block'}),
+                        html.Span(head_nombre, style={'fontSize': '20px', 'fontWeight': '800', 'color': 'var(--color-title)'})
+                    ])
+                ], style={'display': 'flex', 'alignItems': 'center', 'gap': '12px'}),
+                html.Span(head_row.get('Sede', 'MAD'), style={'fontSize': '11px', 'backgroundColor': 'var(--card-divider)', 'color': 'var(--text-border)', 'padding': '4px 12px', 'borderRadius': 'var(--radius-pill)', 'fontWeight': 'bold'})
+            ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'borderBottom': '1px solid #f0f0f0', 'paddingBottom': '18px', 'marginBottom': '20px'}),
             
-            html.H4("Bidding Area Managers", style={'fontSize': '13px', 'color': 'var(--color-title)', 'marginBottom': '0'}),
+            html.H4("Bidding Area Managers", style={'fontSize': '12px', 'color': 'var(--gray-66)', 'textTransform': 'uppercase', 'fontWeight': '700', 'letterSpacing': '0.03em', 'marginBottom': '0'}),
             grid_bams,
-            html.Div(style={'height': '1px', 'backgroundColor': 'var(--card-divider)', 'margin': '24px 0'}),
+            html.Div(style={'height': '1px', 'backgroundColor': '#f0f0f0', 'margin': '22px 0'}),
             
-            html.H4("Bidding Technicians", style={'fontSize': '13px', 'color': 'var(--color-title)', 'marginBottom': '0'}),
+            html.H4("Bidding Technicians", style={'fontSize': '12px', 'color': 'var(--gray-66)', 'textTransform': 'uppercase', 'fontWeight': '700', 'letterSpacing': '0.03em', 'marginBottom': '0'}),
             grid_tecs
             
-        ], style={'backgroundColor': '#FFFFFF', 'border': '2px solid var(--card-divider)', 'borderRadius': 'var(--radius-container)', 'padding': '32px', 'marginBottom': '40px', 'boxShadow': '0 8px 24px rgba(71, 71, 81, 0.04)'})
+        ], style={**ESTILO_TARJETA, 'padding': '24px', 'marginBottom': '20px'})
         
         bloques_jerarquicos.append(bloque_head)
 
@@ -165,10 +182,13 @@ def generar_tarjetas_equipo(df_equipo, df_vac):
     
     if not empleados_huerfanos.empty:
         bloque_huerfanos = html.Div([
-            html.Div("Personal Pendiente de Asignación de Responsable", style={'fontSize': '13px', 'fontWeight': '700', 'color': 'var(--semantic-negative)', 'borderBottom': '1px solid var(--semantic-negative)', 'paddingBottom': '6px', 'marginBottom': '16px'}),
+            html.Div([
+                html.Img(src=icono('alerta', color='#DB563A', size=15), style={'flex': 'none'}),
+                html.Span("Personal pendiente de asignación de responsable", style={'fontSize': '13px', 'fontWeight': '700', 'color': 'var(--semantic-negative)'})
+            ], style={'display': 'flex', 'alignItems': 'center', 'gap': '8px', 'marginBottom': '16px'}),
             html.Div([construir_tarjeta_individual(h_row, 3) for _, h_row in empleados_huerfanos.iterrows()],
                      style={'display': 'grid', 'gridTemplateColumns': 'repeat(auto-fill, minmax(260px, 1fr))', 'gap': '16px'})
-        ], style={'backgroundColor': 'rgba(219,86,58,0.03)', 'border': '1px dashed var(--semantic-negative)', 'borderRadius': 'var(--radius-container)', 'padding': '24px', 'marginBottom': '32px'})
+        ], style={**ESTILO_TARJETA, 'backgroundColor': 'rgba(219,86,58,0.03)', 'border': '1px dashed var(--semantic-negative)', 'padding': '20px', 'marginBottom': '20px', 'boxShadow': 'none'})
         bloques_jerarquicos.append(bloque_huerfanos)
 
     return html.Div(bloques_jerarquicos)
@@ -199,7 +219,7 @@ def layout(rol='lector'):
             # BLOQUE IZQUIERDO: Añadir / Editar Personal
             html.Div([
                 html.Div([
-                    html.Span("Alta y Edición de Personal", style={'color': '#FFFFFF', 'backgroundColor': 'var(--text-border)', 'padding': '8px 16px', 'fontSize': '9px', 'fontWeight': 'bold', 'textTransform': 'uppercase', 'borderRadius': '6px', 'marginRight': '16px'}),
+                    html.Span("Alta y edición de personal", style={'color': '#FFFFFF', 'backgroundColor': 'var(--text-border)', 'padding': '8px 16px', 'fontSize': '9px', 'fontWeight': 'bold', 'textTransform': 'uppercase', 'borderRadius': '6px', 'marginRight': '16px'}),
                     dcc.Dropdown(id='drop-editar-id', options=opciones_empleados, placeholder="Cargar empleado existente...", style={'width': '300px'})
                 ], style={'display': 'flex', 'alignItems': 'center', 'marginBottom': '24px'}),
                 
@@ -254,11 +274,11 @@ def layout(rol='lector'):
                 
                 html.Button('💾 Guardar / Actualizar Empleado', id='btn-anadir', n_clicks=0, className="btn-serveo-primario", style={'float': 'right'})
                 
-            ], className="serveo-panel-accion", style={'flex': '2', 'marginBottom': '0'}),
+            ], style={**ESTILO_TARJETA, 'flex': '2', 'padding': '24px'}),
 
             # BLOQUE DERECHO: Eliminar Personal
             html.Div([
-                html.Div("Baja de Personal", style={'color': '#FFFFFF', 'backgroundColor': 'var(--semantic-negative)', 'padding': '8px 16px', 'fontSize': '9px', 'fontWeight': 'bold', 'textTransform': 'uppercase', 'marginBottom': '24px', 'borderRadius': '6px', 'display': 'inline-block'}),
+                html.Div("Baja de personal", style={'color': '#FFFFFF', 'backgroundColor': 'var(--semantic-negative)', 'padding': '8px 16px', 'fontSize': '9px', 'fontWeight': 'bold', 'textTransform': 'uppercase', 'marginBottom': '24px', 'borderRadius': '6px', 'display': 'inline-block'}),
                 
                 html.Div([
                     html.Label("Seleccionar para dar de baja:", className="etiqueta-dato"),
@@ -267,22 +287,37 @@ def layout(rol='lector'):
                 
                 html.Button('🗑️ Eliminar del Sistema', id='btn-eliminar', n_clicks=0, className="btn-serveo-negativo", style={'width': '100%'})
                 
-            ], className="serveo-panel-accion", style={'flex': '1', 'marginBottom': '0'})
+            ], style={**ESTILO_TARJETA, 'flex': '1', 'padding': '24px'})
             
-        ], style={'display': 'flex', 'gap': '24px', 'marginBottom': '32px'})
+        ], style={'display': 'flex', 'gap': '16px', 'marginBottom': '20px'})
     else:
         # PANTALLA MODO LECTOR (Invisible para no ensuciar la UX)
         panel_superior = html.Div(style={'display': 'none'})
 
 
     return html.Div([
-        html.H3("Directorio del Equipo Técnico", className="serveo-titulo-pagina"),
+        # --- HEADER DE PÁGINA (estilo Salesforce / Claude design) ---
+        html.Div([
+            html.Div([
+                html.Img(src=icono('equipo'), style={
+                    'width': '42px', 'height': '42px', 'borderRadius': '8px', 'background': 'var(--accent)',
+                    'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'padding': '11px',
+                    'boxSizing': 'border-box', 'flex': 'none'
+                }),
+                html.Div([
+                    html.Div("Equipo Técnico", style={'fontSize': '12px', 'color': 'var(--gray-66)', 'fontWeight': '600'}),
+                    html.Div("Directorio y estructura organizativa", style={'fontSize': '20px', 'fontWeight': '700', 'color': 'var(--text-border)', 'lineHeight': '1.2'})
+                ])
+            ], style={'display': 'flex', 'alignItems': 'center', 'gap': '13px'})
+        ], style={**ESTILO_TARJETA, 'padding': '14px 18px', 'marginBottom': '16px'}),
+
+        html.H3("Directorio del Equipo Técnico", className="serveo-titulo-pagina", style={'display': 'none'}),
         
         panel_superior,
         
         html.Div(id='mensaje-equipo', style={'marginBottom': '24px', 'fontWeight': 'bold', 'fontFamily': 'var(--font-family)', 'fontSize': '13px'}),
         
-        html.H3("Estructura Organizativa", className="serveo-titulo-seccion"),
+        html.H3("Estructura Organizativa", className="serveo-titulo-seccion", style={'display': 'none'}),
         html.Div(id='contenedor-tarjetas-equipo', children=tarjetas_iniciales)
 
     ], style={'paddingBottom': '40px'})
