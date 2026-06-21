@@ -30,6 +30,42 @@ ESTILO_BADGE_ETAPA = {
 ETAPAS = ['Pendiente Asignar', 'En estudio', 'Estudio previo']
 
 
+def formatear_presupuesto(valor):
+    """Convierte un número a texto con separador de miles español (1.234.567)."""
+    if valor is None or valor == "" or pd.isna(valor):
+        return ""
+    try:
+        num = float(str(valor).replace('.', '').replace(',', '.')) if isinstance(valor, str) else float(valor)
+    except (ValueError, TypeError):
+        return ""
+    if num == 0:
+        return ""
+    return f"{num:,.0f}".replace(",", ".")
+
+
+def limpiar_presupuesto(texto):
+    """Convierte el texto con separador de miles ('1.234.567') de vuelta a float."""
+    if texto is None or str(texto).strip() == "":
+        return None
+    limpio = str(texto).strip().replace('.', '').replace('€', '').replace(' ', '')
+    limpio = limpio.replace(',', '.')
+    try:
+        return float(limpio)
+    except (ValueError, TypeError):
+        return None
+
+
+def limpiar_numero_decimal(texto):
+    """Convierte un texto con coma o punto decimal (sin separador de miles) a float. Para horas."""
+    if texto is None or str(texto).strip() == "":
+        return None
+    limpio = str(texto).strip().replace(',', '.')
+    try:
+        return float(limpio)
+    except (ValueError, TypeError):
+        return None
+
+
 def badge_etapa(etapa):
     estilo = ESTILO_BADGE_ETAPA.get(etapa, {'color': '#5c5c5c', 'backgroundColor': '#f3f3f3'})
     return html.Span(etapa or 'Sin etapa', style={
@@ -253,8 +289,13 @@ def layout(rol='lector', codigo_seleccionado=None):
         html.Div([
             campo("Fecha de creación", dcc.DatePickerSingle(id='date-act-fcreacion', display_format='YYYY-MM-DD', placeholder='Selecciona…', date=fc_limpia.strftime('%Y-%m-%d') if fc_limpia is not None and pd.notna(fc_limpia) else None, style={'width': '100%'})),
             campo("Fecha de fin (vencimiento)", dcc.DatePickerSingle(id='date-act-ffin', display_format='YYYY-MM-DD', placeholder='Selecciona…', date=ff_limpia.strftime('%Y-%m-%d') if ff_limpia is not None and pd.notna(ff_limpia) else None, style={'width': '100%'})),
-            campo("Horas estimadas (técnicos)", dcc.Input(id='input-act-horas', type='number', min=0, placeholder='Horas…', value=draft.get('Horas de Licitación'), className="input-filtro")),
-            campo("Horas estimadas (BAM)", dcc.Input(id='input-act-horas-bam', type='number', min=0, placeholder='Horas…', value=draft.get('Horas de Licitación BAM'), className="input-filtro"), color_label='var(--accent)'),
+            campo("Horas estimadas (técnicos)", dcc.Input(id='input-act-horas', type='text', inputMode='numeric', placeholder='Horas…', value=draft.get('Horas de Licitación'), className="input-filtro")),
+            campo("Horas estimadas (BAM)", dcc.Input(id='input-act-horas-bam', type='text', inputMode='numeric', placeholder='Horas…', value=draft.get('Horas de Licitación BAM'), className="input-filtro"), color_label='var(--accent)'),
+        ], style={'display': 'flex', 'gap': '16px', 'marginBottom': '14px'}),
+
+        html.Div([
+            campo("Presupuesto (€)", dcc.Input(id='input-act-presupuesto', type='text', inputMode='numeric', placeholder='Importe en euros…', value=formatear_presupuesto(draft.get('Presupuesto')), className="input-filtro"), flex='1'),
+            html.Div(style={'flex': '3'}),
         ], style={'display': 'flex', 'gap': '16px', 'marginBottom': '14px'}),
 
         html.Div([
@@ -308,16 +349,18 @@ def register_callbacks(app):
          Output('date-act-ffin', 'date', allow_duplicate=True),
          Output('input-act-horas', 'value', allow_duplicate=True),
          Output('input-act-horas-bam', 'value', allow_duplicate=True),
+         Output('input-act-presupuesto', 'value', allow_duplicate=True),
          Output('input-involucrados', 'value', allow_duplicate=True),
          Output('input-act-comentario', 'value', allow_duplicate=True),
-         Output('area-informe', 'value', allow_duplicate=True)],
+         Output('area-informe', 'value', allow_duplicate=True),
+         Output('msj-interaccion', 'children', allow_duplicate=True)],
         Input('btn-modo-nueva', 'n_clicks'),
         prevent_initial_call=True
     )
     def iniciar_modo_alta(n_clicks):
         if not n_clicks:
             raise dash.exceptions.PreventUpdate
-        return None, None, "", None, None, None, None, None, None, None, "", "", "", "", ""
+        return None, None, "", None, None, None, None, None, None, None, "", "", "", "", "", "", ""
 
     # ----------------------------------------------------------------
     # 2. Selección de licitación en la lista lateral (clic en una fila)
@@ -355,9 +398,11 @@ def register_callbacks(app):
          Output('date-act-ffin', 'date', allow_duplicate=True),
          Output('input-act-horas', 'value', allow_duplicate=True),
          Output('input-act-horas-bam', 'value', allow_duplicate=True),
+         Output('input-act-presupuesto', 'value', allow_duplicate=True),
          Output('input-involucrados', 'value', allow_duplicate=True),
          Output('input-act-comentario', 'value', allow_duplicate=True),
-         Output('area-informe', 'value', allow_duplicate=True)], # <-- Agregado como salida
+         Output('area-informe', 'value', allow_duplicate=True), # <-- Agregado como salida
+         Output('msj-interaccion', 'children', allow_duplicate=True)],
         [Input('asig-codigo-seleccionado', 'data'),
          Input('lista-asig-buscar', 'value'),
          Input('lista-asig-filtro-etapa', 'value')],
@@ -391,8 +436,8 @@ def register_callbacks(app):
         filas = [fila_licitacion(r, codigo_sel) for r in registros_lista]
 
         # --- Recargar el panel de detalle según la licitación seleccionada ---
-        # ret_vacio incluye un string vacío extra para el 'area-informe'
-        ret_vacio = ("Selecciona o crea una licitación", "", None, None, None, None, None, None, None, None, "", "", "", "", "", "")
+        # ret_vacio incluye un string vacío extra para el 'area-informe' y otro para limpiar 'msj-interaccion'
+        ret_vacio = ("Selecciona o crea una licitación", "", None, None, None, None, None, None, None, None, "", "", "", "", "", "", "")
         if not codigo_sel or df_cron.empty:
             return (filas, *ret_vacio)
 
@@ -420,6 +465,9 @@ def register_callbacks(app):
         if pd.isna(horas_tec) or horas_tec == "": horas_tec = 0
         if pd.isna(horas_bam) or horas_bam == "": horas_bam = 0
 
+        presupuesto_val = r.get('Presupuesto', 0)
+        if pd.isna(presupuesto_val) or presupuesto_val == "": presupuesto_val = 0
+
         # --- Generación automática del informe de lectura ---
         informe_generado = (
             f"📌 ACTUALIZACIÓN DE ASIGNACIÓN (SERVEO)\n"
@@ -434,7 +482,8 @@ def register_callbacks(app):
             f"Apoyo/Involucrados: {invol_clean if invol_clean else 'Ninguno'}\n\n"
             f"⏳ PLANIFICACIÓN TÉCNICA:\n"
             f"Fechas: {fcreacion_str} al {ffin_str}\n"
-            f"Horas Estimadas: {horas_tec}h (Técnicos) / {horas_bam}h (BAM)\n\n"
+            f"Horas Estimadas: {horas_tec}h (Técnicos) / {horas_bam}h (BAM)\n"
+            f"Presupuesto: {presupuesto_val:,.0f} €\n\n"
             f"💬 NOTAS ADICIONALES:\n"
             f"{comentario_val if comentario_val else 'Ninguna'}\n"
             f"--------------------------------------------------"
@@ -454,9 +503,11 @@ def register_callbacks(app):
             ff_limpia.strftime('%Y-%m-%d') if pd.notna(ff_limpia) else None,
             r.get('Horas de Licitación', ''),
             r.get('Horas de Licitación BAM', ''),
+            formatear_presupuesto(r.get('Presupuesto', '')),
             r.get('Personas involucradas', ''),
             r.get('Comentario', ''),
-            informe_generado # <-- Retornado al final de la tupla
+            informe_generado, # <-- Retornado al final de la tupla
+            "" # Limpia cualquier mensaje de error de una licitación anterior
         )
 
     # ----------------------------------------------------------------
@@ -494,6 +545,7 @@ def register_callbacks(app):
          Output('date-act-ffin', 'date', allow_duplicate=True),
          Output('input-act-horas', 'value', allow_duplicate=True),
          Output('input-act-horas-bam', 'value', allow_duplicate=True),
+         Output('input-act-presupuesto', 'value', allow_duplicate=True),
          Output('drop-act-bam', 'value', allow_duplicate=True),
          Output('drop-act-t1', 'value', allow_duplicate=True),
          Output('drop-act-t2', 'value', allow_duplicate=True),
@@ -526,6 +578,7 @@ def register_callbacks(app):
             ff_limpia.strftime('%Y-%m-%d') if pd.notna(ff_limpia) else None,
             r.get('Horas de Licitación', ''),
             r.get('Horas de Licitación BAM', ''),
+            formatear_presupuesto(r.get('Presupuesto', '')),
             "", "", "", "", "", "",
             str(r.get(COL_NOMBRE, 'Sin nombre')),
             str(r.get('Cliente', '')),
@@ -555,13 +608,14 @@ def register_callbacks(app):
          State('date-act-ffin', 'date'),
          State('input-act-horas', 'value'),
          State('input-act-horas-bam', 'value'),
+         State('input-act-presupuesto', 'value'),
          State('input-act-comentario', 'value'),
          State('asig-codigo-seleccionado', 'data')],
         prevent_initial_call=True
     )
     def gestor_maestro_funnel(n_activar, n_eliminar, cod_lic_input, edit_lic_input, etapa, bam_val, t1, t2, t3,
                                involucrados_val, high_fcreacion, high_ffin, high_horas, high_horas_bam,
-                               comentario_input, codigo_actual):
+                               high_presupuesto, comentario_input, codigo_actual):
         trigger = ctx.triggered_id
         if not trigger:
             raise dash.exceptions.PreventUpdate
@@ -574,7 +628,7 @@ def register_callbacks(app):
             return error_sistema, estilo_msg, dash.no_update, dash.no_update, dash.no_update
 
         cols_necesarias = [COL_CODIGO, COL_NOMBRE, 'Cliente', 'Fecha de Creación', 'Fecha de Fin',
-                            'Horas de Licitación', 'Horas de Licitación BAM', 'BAM', 'Técnico 1', 'Técnico 2',
+                            'Horas de Licitación', 'Horas de Licitación BAM', 'Presupuesto', 'BAM', 'Técnico 1', 'Técnico 2',
                             'Técnico 3', 'Personas involucradas', 'Etapa', 'Comentario']
         for col in cols_necesarias:
             if col not in df_cron.columns:
@@ -606,6 +660,46 @@ def register_callbacks(app):
                 estilo_msg['color'] = 'var(--semantic-negative)'
                 return f"⚠️ La etapa '{etapa}' exige asignar al menos un BAM o un Técnico.", estilo_msg, dash.no_update, dash.no_update, dash.no_update
 
+            # --- VALIDACIÓN DE TIPOS DE DATOS ANTES DE GUARDAR ---
+            horas_tec_num = limpiar_numero_decimal(high_horas)
+            if high_horas and str(high_horas).strip() != "" and horas_tec_num is None:
+                estilo_msg['color'] = 'var(--semantic-negative)'
+                return f"⚠️ 'Horas estimadas (técnicos)' debe ser un número (escribiste: \"{high_horas}\").", estilo_msg, dash.no_update, dash.no_update, dash.no_update
+            if horas_tec_num is not None and horas_tec_num < 0:
+                estilo_msg['color'] = 'var(--semantic-negative)'
+                return "⚠️ 'Horas estimadas (técnicos)' no puede ser un número negativo.", estilo_msg, dash.no_update, dash.no_update, dash.no_update
+
+            horas_bam_num = limpiar_numero_decimal(high_horas_bam)
+            if high_horas_bam and str(high_horas_bam).strip() != "" and horas_bam_num is None:
+                estilo_msg['color'] = 'var(--semantic-negative)'
+                return f"⚠️ 'Horas estimadas (BAM)' debe ser un número (escribiste: \"{high_horas_bam}\").", estilo_msg, dash.no_update, dash.no_update, dash.no_update
+            if horas_bam_num is not None and horas_bam_num < 0:
+                estilo_msg['color'] = 'var(--semantic-negative)'
+                return "⚠️ 'Horas estimadas (BAM)' no puede ser un número negativo.", estilo_msg, dash.no_update, dash.no_update, dash.no_update
+
+            presupuesto_num = limpiar_presupuesto(high_presupuesto)
+            if high_presupuesto and str(high_presupuesto).strip() != "" and presupuesto_num is None:
+                estilo_msg['color'] = 'var(--semantic-negative)'
+                return f"⚠️ 'Presupuesto' debe ser un importe numérico (escribiste: \"{high_presupuesto}\").", estilo_msg, dash.no_update, dash.no_update, dash.no_update
+            if presupuesto_num is not None and presupuesto_num < 0:
+                estilo_msg['color'] = 'var(--semantic-negative)'
+                return "⚠️ 'Presupuesto' no puede ser un importe negativo.", estilo_msg, dash.no_update, dash.no_update, dash.no_update
+
+            fc_valida = parsear_fecha_es(high_fcreacion) if high_fcreacion else None
+            if high_fcreacion and pd.isna(fc_valida):
+                estilo_msg['color'] = 'var(--semantic-negative)'
+                return f"⚠️ 'Fecha de creación' no es una fecha válida (\"{high_fcreacion}\").", estilo_msg, dash.no_update, dash.no_update, dash.no_update
+
+            ff_valida = parsear_fecha_es(high_ffin) if high_ffin else None
+            if high_ffin and pd.isna(ff_valida):
+                estilo_msg['color'] = 'var(--semantic-negative)'
+                return f"⚠️ 'Fecha de fin' no es una fecha válida (\"{high_ffin}\").", estilo_msg, dash.no_update, dash.no_update, dash.no_update
+
+            if fc_valida is not None and ff_valida is not None and not pd.isna(fc_valida) and not pd.isna(ff_valida):
+                if ff_valida.date() < fc_valida.date():
+                    estilo_msg['color'] = 'var(--semantic-negative)'
+                    return "⚠️ 'Fecha de fin' no puede ser anterior a 'Fecha de creación'.", estilo_msg, dash.no_update, dash.no_update, dash.no_update
+
             if etapa == 'Pendiente Asignar':
                 t1_val = t2_val = t3_val = bam_clean = ""
 
@@ -622,14 +716,9 @@ def register_callbacks(app):
                 df_cron.loc[mask, 'Comentario'] = comentario_val
                 df_cron.loc[mask, 'Fecha de Creación'] = str(high_fcreacion).strip() if high_fcreacion else ""
                 df_cron.loc[mask, 'Fecha de Fin'] = str(high_ffin).strip() if high_ffin else ""
-                try:
-                    df_cron.loc[mask, 'Horas de Licitación'] = float(high_horas) if high_horas else ""
-                except Exception:
-                    df_cron.loc[mask, 'Horas de Licitación'] = ""
-                try:
-                    df_cron.loc[mask, 'Horas de Licitación BAM'] = float(high_horas_bam) if high_horas_bam else ""
-                except Exception:
-                    df_cron.loc[mask, 'Horas de Licitación BAM'] = ""
+                df_cron.loc[mask, 'Horas de Licitación'] = horas_tec_num if horas_tec_num is not None else ""
+                df_cron.loc[mask, 'Horas de Licitación BAM'] = horas_bam_num if horas_bam_num is not None else ""
+                df_cron.loc[mask, 'Presupuesto'] = presupuesto_num if presupuesto_num is not None else ""
 
                 nom_proy = str(df_cron.loc[mask, COL_NOMBRE].values[0])
                 cliente = str(df_cron.loc[mask, 'Cliente'].values[0]) if 'Cliente' in df_cron.columns else ""
@@ -652,14 +741,9 @@ def register_callbacks(app):
                     fila_virgen['Cliente'] = ""
                 fila_virgen['Fecha de Creación'] = str(high_fcreacion).strip() if high_fcreacion else ""
                 fila_virgen['Fecha de Fin'] = str(high_ffin).strip() if high_ffin else ""
-                try:
-                    fila_virgen['Horas de Licitación'] = float(high_horas) if high_horas else ""
-                except Exception:
-                    fila_virgen['Horas de Licitación'] = ""
-                try:
-                    fila_virgen['Horas de Licitación BAM'] = float(high_horas_bam) if high_horas_bam else ""
-                except Exception:
-                    fila_virgen['Horas de Licitación BAM'] = ""
+                fila_virgen['Horas de Licitación'] = horas_tec_num if horas_tec_num is not None else ""
+                fila_virgen['Horas de Licitación BAM'] = horas_bam_num if horas_bam_num is not None else ""
+                fila_virgen['Presupuesto'] = presupuesto_num if presupuesto_num is not None else ""
 
                 df_cron = pd.concat([df_cron, fila_virgen], ignore_index=True)
                 mensaje = f"🚀 ¡Licitación {cod_lic} inyectada al Funnel Operativo!"
@@ -677,7 +761,8 @@ def register_callbacks(app):
                 f"Apoyo/Involucrados: {invol_clean if invol_clean else 'Ninguno'}\n\n"
                 f"⏳ PLANIFICACIÓN TÉCNICA:\n"
                 f"Fechas: {high_fcreacion if high_fcreacion else 'TBD'} al {high_ffin if high_ffin else 'TBD'}\n"
-                f"Horas Estimadas: {high_horas if high_horas else 0}h (Técnicos) / {high_horas_bam if high_horas_bam else 0}h (BAM)\n\n"
+                f"Horas Estimadas: {horas_tec_num if horas_tec_num is not None else 0}h (Técnicos) / {horas_bam_num if horas_bam_num is not None else 0}h (BAM)\n"
+                f"Presupuesto: {(presupuesto_num or 0):,.0f} €\n\n"
                 f"💬 NOTAS ADICIONALES:\n"
                 f"{comentario_val if comentario_val else 'Ninguna'}\n"
                 f"--------------------------------------------------"

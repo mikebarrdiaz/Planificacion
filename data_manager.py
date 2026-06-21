@@ -303,7 +303,7 @@ def procesar_cronograma(df_base):
         # Horas totales necesarias para el proyecto
         h_tec = row.get('Horas de Licitación', 0)
         h_tec = 0 if pd.isnull(h_tec) or str(h_tec).strip() == "" else float(h_tec)
-        h_bam = row.get('Horas Licitación BAM', 0)
+        h_bam = row.get('Horas de Licitación BAM', 0)
         h_bam = 0 if pd.isnull(h_bam) or str(h_bam).strip() == "" else float(h_bam)
         horas_totales_req = h_tec + h_bam
         

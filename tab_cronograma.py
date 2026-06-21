@@ -200,8 +200,8 @@ def layout():
 
     if "Horas de Licitación" in df_maestro.columns:
         df_maestro = df_maestro.rename(columns={"Horas de Licitación": "Horas"})
-    if "Horas Licitación BAM" in df_maestro.columns:
-        df_maestro = df_maestro.rename(columns={"Horas Licitación BAM": "Horas BAM"})
+    if "Horas de Licitación BAM" in df_maestro.columns:
+        df_maestro = df_maestro.rename(columns={"Horas de Licitación BAM": "Horas BAM"})
 
     fijas_pendientes = base_comun + cierres_comunes
     cols_pendientes = [{"name": c, "id": c} for c in fijas_pendientes + col_calendario]
@@ -481,8 +481,8 @@ def register_callbacks(app):
 
         if "Horas de Licitación" in df_maestro.columns:
             df_maestro = df_maestro.rename(columns={"Horas de Licitación": "Horas"})
-        if "Horas Licitación BAM" in df_maestro.columns:
-            df_maestro = df_maestro.rename(columns={"Horas Licitación BAM": "Horas BAM"})
+        if "Horas de Licitación BAM" in df_maestro.columns:
+            df_maestro = df_maestro.rename(columns={"Horas de Licitación BAM": "Horas BAM"})
 
         for c in ['Técnico 1', 'Técnico 2', 'Técnico 3', 'BAM', 'Nivel', 'Horas', 'Horas BAM']:
             if c not in df_maestro.columns:
