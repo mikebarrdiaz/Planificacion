@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import datetime
 import pandas as pd
-from utils.data_manager import leer_excel, sincronizar_vacaciones
+from utils.data_manager import obtener_datos_eficiente, sincronizar_vacaciones
 
 def generar_grafico_vacaciones(df_vacaciones, nombres_equipo):
     if not nombres_equipo:
@@ -73,7 +73,6 @@ def generar_opciones_borrado(df_vacaciones):
 
 # --- RENDERS DE TARJETAS AGRUPADAS POR PERSONA ---
 def generar_tarjetas_ausencias(df_vacaciones):
-    """Genera una única tarjeta consolidada por técnico con el desglose de todas sus ausencias."""
     if df_vacaciones.empty:
         return html.Div("No hay registros de ausencias activos en este momento.", 
                         style={'color': 'var(--gray-b3)', 'fontFamily': 'var(--font-family)', 'fontStyle': 'italic', 'padding': '16px'})
@@ -81,19 +80,15 @@ def generar_tarjetas_ausencias(df_vacaciones):
     tarjetas = []
     df_temp = df_vacaciones.copy()
     
-    # Estandarizamos fechas para poder ordenar cronológicamente
     df_temp['Fecha_Inicio_dt'] = pd.to_datetime(df_temp['Fecha_Inicio'], errors='coerce')
     df_temp = df_temp.sort_values(by='Fecha_Inicio_dt', ascending=True)
 
-    # Agrupamos por el nombre de la persona
     for nombre, grupo in df_temp.groupby('Nombre'):
         bloques_ausencias = []
         
-        # Recorremos todas las ausencias que tiene esta persona concreta
         for _, row in grupo.iterrows():
             motivo = row.get('Tipo_Ausencia', 'Ausencia')
             
-            # Estilos semánticos SERVEO para el mini-badge
             if "VACACIONES" in str(motivo).upper():
                 color_badge = 'var(--semantic-positive)'
                 bg_badge = 'var(--semantic-positive-bg)'
@@ -107,7 +102,6 @@ def generar_tarjetas_ausencias(df_vacaciones):
             f_inicio = pd.to_datetime(row.get('Fecha_Inicio')).strftime('%d/%m/%Y') if pd.notna(row.get('Fecha_Inicio')) else "N/A"
             f_fin = pd.to_datetime(row.get('Fecha_Fin')).strftime('%d/%m/%Y') if pd.notna(row.get('Fecha_Fin')) else "N/A"
 
-            # Fila de la ausencia individualizada
             bloque = html.Div([
                 html.Span(f"{f_inicio} al {f_fin}", style={'fontSize': '12px', 'fontWeight': '600', 'color': 'var(--text-border)'}),
                 html.Span(motivo, style={
@@ -119,22 +113,18 @@ def generar_tarjetas_ausencias(df_vacaciones):
             
             bloques_ausencias.append(bloque)
 
-        # Envoltorio de la Tarjeta Unificada por Persona
         tarjeta = html.Div([
-            # Cabecera de la Ficha
             html.Div([
                 html.Span(nombre, style={'fontWeight': '700', 'fontSize': '15px', 'color': 'var(--color-title)'}),
                 html.Span(f"{len(bloques_ausencias)} Registro(s)", style={'fontSize': '10px', 'color': 'var(--gray-66)', 'textTransform': 'uppercase', 'fontWeight': 'bold'})
             ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'marginBottom': '12px', 'borderBottom': '1px solid var(--text-border)', 'paddingBottom': '8px'}),
             
-            # Lista interior de ausencias acumuladas
             html.Div(bloques_ausencias, style={'display': 'flex', 'flexDirection': 'column', 'gap': '4px'})
             
         ], className="card-serveo", style={'marginBottom': '0', 'boxShadow': '0 4px 12px rgba(71, 71, 81, 0.03)', 'padding': '20px'})
         
         tarjetas.append(tarjeta)
 
-    # Distribución en Grid fluida
     return html.Div(tarjetas, style={
         'display': 'grid', 
         'gridTemplateColumns': 'repeat(auto-fill, minmax(310px, 1fr))', 
@@ -142,8 +132,10 @@ def generar_tarjetas_ausencias(df_vacaciones):
         'marginBottom': '32px'
     })
 
-def layout():
-    _, df_eq, df_vacaciones = leer_excel()
+
+def layout(rol='lector'):
+    _, _, df_eq, df_vacaciones, _ = obtener_datos_eficiente(force_reload=False)
+    
     nombres_equipo = df_eq['Nombre'].dropna().tolist() if not df_eq.empty else []
     
     opciones_tecnicos = [{'label': nombre, 'value': nombre} for nombre in nombres_equipo]
@@ -153,10 +145,14 @@ def layout():
     opciones_borrar_inicial = generar_opciones_borrado(df_vacaciones)
     tarjetas_iniciales = generar_tarjetas_ausencias(df_vacaciones)
 
+    # --- LÓGICA DE SEGURIDAD MANTENIENDO TU LAYOUT EXACTO ---
+    # Si es editor, mantenemos tu estilo original. Si no, lo ocultamos.
+    estilo_panel_dual = {'display': 'flex', 'gap': '24px', 'marginBottom': '32px'} if rol == 'editor' else {'display': 'none'}
+
     return html.Div([
         html.H3("Panel de Gestión de Ausencias", className="serveo-titulo-pagina"),
         
-        # --- PANEL DE CONTROL DUAL ---
+        # --- PANEL DE CONTROL DUAL ORIGINAL ---
         html.Div([
             
             # --- AÑADIR REGISTRO ---
@@ -201,7 +197,7 @@ def layout():
                 
             ], className="serveo-panel-accion", style={'flex': '1', 'marginBottom': '0'})
             
-        ], style={'display': 'flex', 'gap': '24px', 'marginBottom': '32px'}),
+        ], style=estilo_panel_dual), # <--- AQUÍ APLICAMOS LA REGLA SIN ROMPER LA ESTRUCTURA HTML
         
         # Chivato de notificaciones
         html.Div(id='msj-accion-vac', style={'marginBottom': '24px', 'fontWeight': 'bold', 'fontFamily': 'var(--font-family)', 'fontSize': '13px'}),
@@ -226,23 +222,24 @@ def layout():
 
 def register_callbacks(app):
     @app.callback(
-        [Output('contenedor-tarjetas-vacaciones', 'children'),
-         Output('grafico-vac', 'figure'),
-         Output('drop-del-vac', 'options'),
-         Output('msj-accion-vac', 'children'),
-         Output('msj-accion-vac', 'style'),
-         Output('in-vac-tec', 'value'),
-         Output('in-vac-fecha', 'start_date'),
-         Output('in-vac-fecha', 'end_date'),
-         Output('in-vac-tipo', 'value'),
-         Output('drop-del-vac', 'value')],
+        [Output('contenedor-tarjetas-vacaciones', 'children', allow_duplicate=True),
+         Output('grafico-vac', 'figure', allow_duplicate=True),
+         Output('drop-del-vac', 'options', allow_duplicate=True),
+         Output('msj-accion-vac', 'children', allow_duplicate=True),
+         Output('msj-accion-vac', 'style', allow_duplicate=True),
+         Output('in-vac-tec', 'value', allow_duplicate=True),
+         Output('in-vac-fecha', 'start_date', allow_duplicate=True),
+         Output('in-vac-fecha', 'end_date', allow_duplicate=True),
+         Output('in-vac-tipo', 'value', allow_duplicate=True),
+         Output('drop-del-vac', 'value', allow_duplicate=True)],
         [Input('btn-add-vac', 'n_clicks'),
          Input('btn-del-vac', 'n_clicks')],
         [State('in-vac-tec', 'value'),
          State('in-vac-fecha', 'start_date'),
          State('in-vac-fecha', 'end_date'),
          State('in-vac-tipo', 'value'),
-         State('drop-del-vac', 'value')]
+         State('drop-del-vac', 'value')],
+        prevent_initial_call=True
     )
     def orquestador_vacaciones(btn_add, btn_del, nombre, start_date, end_date, tipo, valor_borrar):
         trigger = ctx.triggered_id
@@ -250,12 +247,17 @@ def register_callbacks(app):
         if not trigger:
             raise dash.exceptions.PreventUpdate
 
-        _, df_eq, df_vac = leer_excel()
+        _, _, df_eq, df_vac, error_sistema = obtener_datos_eficiente(force_reload=False)
         nombres = df_eq['Nombre'].dropna().tolist() if not df_eq.empty else []
         estilo_msg = {'marginBottom': '20px', 'fontWeight': 'bold', 'fontFamily': 'var(--font-family)', 'fontSize': '13px'}
         mensaje = ""
 
+        if error_sistema:
+            estilo_msg['color'] = 'var(--semantic-negative)'
+            return dash.no_update, dash.no_update, dash.no_update, error_sistema, estilo_msg, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
         clear_tec, clear_start, clear_end, clear_tipo, clear_del = dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        exito = False
 
         # --- AÑADIR ---
         if trigger == 'btn-add-vac':
@@ -308,6 +310,9 @@ def register_callbacks(app):
             else:
                 estilo_msg['color'] = 'var(--semantic-negative)'
                 mensaje = msj_sync
+
+        if exito:
+            _, _, df_eq, df_vac, _ = obtener_datos_eficiente(force_reload=True)
 
         # --- RE-RENDERIZADO AUTOMÁTICO ---
         html_tarjetas_actualizadas = generar_tarjetas_ausencias(df_vac)

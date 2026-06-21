@@ -281,3 +281,14 @@ input.input-filtro:focus,
   color: var(--accent) !important;
   border-bottom: 2px solid var(--accent) !important;
 }
+
+.dash-table-tooltip {
+    background-color: #474751 !important;
+    color: #FFFFFF !important;
+    border: 1px solid #474751 !important;
+    border-radius: 6px !important;
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 11px !important;
+    padding: 8px 12px !important;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15) !important;
+}
